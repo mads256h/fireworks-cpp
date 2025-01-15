@@ -101,6 +101,10 @@ int main() {
     gl::enable(GL_DEBUG_OUTPUT);
     gl::debug_message_callback(debug_message_callback, nullptr);
 
+    gl::enable(GL_BLEND);
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     auto program = gl::create_program();
 
     // Vertex shader
@@ -156,16 +160,23 @@ void debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum severi
     std::cerr << "GL CALLBACK: " << (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **"sv : ""sv) << std::hex << " type = 0x" << type << ", severity = 0x" << severity << ", message = " << message << std::endl << std::dec;
 }
 
+glm::mat4 make_model_matrix(glm::vec2 position, float rotations_radians, glm::vec2 scale) noexcept
+{
+    auto model_matrix = glm::identity<glm::mat4>();
+    model_matrix = glm::translate(model_matrix, glm::vec3(position.x, position.y, 0.0f));
+    model_matrix = glm::rotate(model_matrix, -rotations_radians, glm::vec3(0.0f, 0.0f, 1.0f));
+    model_matrix = glm::scale(model_matrix, glm::vec3(scale.x, scale.y, 1.0f));
+
+    return model_matrix;
+}
+
 void render(const shader_stuff& stuff, const glm::mat4& projection_matrix) {
     static float rotation = 0.0f;
 
-    rotation = std::fmod(rotation + 0.05f, 360.0f);
-    auto model_matrix = glm::identity<glm::mat4>();
-    auto rotation_matrix = glm::rotate(model_matrix, rotation, glm::vec3(0.0f, 0.0f, 1.0f));
-    auto scale_matrix = glm::scale(model_matrix, glm::vec3(200.0f, 200.0f, 1.0f));
-    auto translation_matrix = glm::translate(model_matrix, glm::vec3(200.0f, 200.0f, 0.0f));
+    rotation += 0.05f;
 
-    model_matrix = translation_matrix * rotation_matrix * scale_matrix;
+    auto model_matrix = make_model_matrix(glm::vec2(200.0f, 200.0f), rotation, glm::vec2(50.0f, 200.0f));
+
 
 
     gl::clear(GL_COLOR_BUFFER_BIT);
