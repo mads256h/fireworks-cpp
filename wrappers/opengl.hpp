@@ -19,6 +19,7 @@ namespace gl {
     using vertex_array_object_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
     using vertex_buffer_object_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
     using index_buffer_object_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
+    using texture_coordinate_buffer_object_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
 
     void enable(GLenum cap) noexcept {
         glEnable(cap);
@@ -179,6 +180,19 @@ namespace gl {
         glBindVertexArray(vertex_array_object);
 
         return vertex_array_object_t(std::move(vertex_array_object), [](GLuint vertex_array_object) {glDeleteVertexArrays(1, &vertex_array_object); });
+    }
+
+    auto generate_texture_coordinate_buffer_object(const std::vector<GLfloat>& texture_coordinate_data) noexcept {
+        GLuint texture_coordinate_buffer_object;
+        glGenBuffers(1, &texture_coordinate_buffer_object);
+        glBindBuffer(GL_ARRAY_BUFFER, texture_coordinate_buffer_object);
+        glBufferData(GL_ARRAY_BUFFER, texture_coordinate_data.size() * sizeof(GLfloat), texture_coordinate_data.data(), GL_STATIC_DRAW);
+
+        return texture_coordinate_buffer_object_t(std::move(texture_coordinate_buffer_object), [](GLuint texture_coordinate_buffer) {glDeleteBuffers(1, &texture_coordinate_buffer); });
+    }
+
+    auto bind_texture_coordinate_buffer_object(const texture_coordinate_buffer_object_t& texture_coordinate_buffer_object) noexcept {
+        glBindBuffer(GL_ARRAY_BUFFER, texture_coordinate_buffer_object.value());
     }
 
     auto enable_vertex_attribute_array(GLint attribute) noexcept {

@@ -19,10 +19,13 @@ struct shader_stuff {
     gl::shader_t vertex_shader;
     gl::shader_t fragment_shader;
     GLint vertex_position_attribute;
+    GLint vertex_uv_attribute;
     GLint projection_uniform;
+    GLint model_uniform;
     gl::vertex_array_object_t vertex_array_object;
     gl::vertex_buffer_object_t vertex_buffer_object;
     gl::index_buffer_object_t index_buffer_object;
+    gl::texture_coordinate_buffer_object_t texture_coordinate_buffer_object;
 };
 shader_stuff init_gl();
 void render(const shader_stuff& stuff, const glm::mat4& projection);
@@ -115,7 +118,9 @@ int main() {
     gl::link_program(program);
 
     auto vertex_position_attribute = gl::get_attribute_location(program, "vertex_position");
+    auto vertex_uv_attribute = gl::get_attribute_location(program, "vertex_uv");
     auto projection_uniform = gl::get_uniform_location(program, "projection");
+    auto model_uniform = gl::get_uniform_location(program, "model");
 
     // Set clear color to magenta
     gl::clear_color(1.0f, 0.0f, 1.0f, 1.0f);
@@ -123,10 +128,17 @@ int main() {
     //VBO data
     std::vector<GLfloat> vertex_data =
     {
-        0.0f, 0.0f,
-         200.0f, 0.0f,
-         200.0f,  200.0f,
-        0.0f,  200.0f
+        -0.5f, -0.5f,
+         0.5f, -0.5f,
+         0.5f,  0.5f,
+        -0.5f,  0.5f
+    };
+
+    std::vector<GLfloat> uv = {
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        0.0, 1.0
     };
 
     //IBO data
@@ -135,8 +147,9 @@ int main() {
     auto vertex_array_object = gl::generate_vertex_array_object();
     auto vertex_buffer_object = gl::generate_vertex_buffer_object(vertex_data);
     auto index_buffer_object = gl::generate_index_buffer_object(index_data);
+    auto texture_coordinate_buffer_object = gl::generate_texture_coordinate_buffer_object(uv);
 
-    return { std::move(program), std::move(vertex_shader), std::move(fragment_shader), vertex_position_attribute, projection_uniform, std::move(vertex_array_object), std::move(vertex_buffer_object), std::move(index_buffer_object) };
+    return { std::move(program), std::move(vertex_shader), std::move(fragment_shader), vertex_position_attribute, vertex_uv_attribute, projection_uniform, model_uniform, std::move(vertex_array_object), std::move(vertex_buffer_object), std::move(index_buffer_object), std::move(texture_coordinate_buffer_object) };
 }
 
 void debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void *) {
@@ -144,6 +157,17 @@ void debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum severi
 }
 
 void render(const shader_stuff& stuff, const glm::mat4& projection_matrix) {
+    static float rotation = 0.0f;
+
+    rotation = std::fmod(rotation + 0.05f, 360.0f);
+    auto model_matrix = glm::identity<glm::mat4>();
+    auto rotation_matrix = glm::rotate(model_matrix, rotation, glm::vec3(0.0f, 0.0f, 1.0f));
+    auto scale_matrix = glm::scale(model_matrix, glm::vec3(200.0f, 200.0f, 1.0f));
+    auto translation_matrix = glm::translate(model_matrix, glm::vec3(200.0f, 200.0f, 0.0f));
+
+    model_matrix = translation_matrix * rotation_matrix * scale_matrix;
+
+
     gl::clear(GL_COLOR_BUFFER_BIT);
 
     gl::use_program(stuff.program);
@@ -153,12 +177,18 @@ void render(const shader_stuff& stuff, const glm::mat4& projection_matrix) {
     gl::enable_vertex_attribute_array(stuff.vertex_position_attribute);
     gl::vertex_attrib_pointer(stuff.vertex_position_attribute);
 
+    gl::bind_texture_coordinate_buffer_object(stuff.texture_coordinate_buffer_object);
+    gl::enable_vertex_attribute_array(stuff.vertex_uv_attribute);
+    gl::vertex_attrib_pointer(stuff.vertex_uv_attribute);
+
     glUniformMatrix4fv(stuff.projection_uniform, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+    glUniformMatrix4fv(stuff.model_uniform, 1, GL_FALSE, glm::value_ptr(model_matrix));
 
     gl::bind_index_buffer_object(stuff.index_buffer_object);
     gl::draw_elements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT);
 
     gl::disable_vertex_attribute_array(stuff.vertex_position_attribute);
+    gl::disable_vertex_attribute_array(stuff.vertex_uv_attribute);
 
     gl::unbind_program();
 }
