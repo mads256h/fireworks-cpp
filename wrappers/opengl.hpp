@@ -6,20 +6,178 @@
 #define OPENGL_HPP
 
 #include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <string_view>
 #include <vector>
 #include <array>
+#include <type_traits>
+#include <iostream>
 
 #include "../utilities.hpp"
 
 namespace gl {
     using program_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
+
+    class attribute_location_t {
+        GLint m_attribute_location;
+
+    public:
+        constexpr explicit attribute_location_t(GLint location) noexcept : m_attribute_location(location) {}
+        [[nodiscard]] constexpr GLint attribute_location() const noexcept { return m_attribute_location; }
+    };
+
+    class uniform_location_t {
+        GLint m_uniform_location;
+
+    public:
+        constexpr explicit uniform_location_t(GLint location) noexcept : m_uniform_location(location) {}
+        [[nodiscard]] constexpr GLint uniform_location() const noexcept { return m_uniform_location; }
+    };
+
+    auto get_attribute_location(const program_t& program, const char* name) noexcept {
+        auto attribute = glGetAttribLocation(program.value(), name);
+
+        if (attribute == -1) {
+            std::cerr << "Failed to get attribute location " << name << std::endl;
+            //exit(EXIT_FAILURE);
+        }
+
+        return attribute_location_t(attribute);
+    }
+
+    auto enable_vertex_attribute_array(const attribute_location_t& attribute) noexcept {
+        glEnableVertexAttribArray(attribute.attribute_location());
+    }
+
+    auto disable_vertex_attribute_array(const attribute_location_t& attribute) noexcept {
+        glDisableVertexAttribArray(attribute.attribute_location());
+    }
+
+    template<typename TValue, GLenum Target, GLint Size, GLenum Type, bool Instanced = false, GLenum Usage = GL_STATIC_DRAW>
+    class attribute_buffer_object_t {
+        attribute_location_t m_attribute_location;
+        GLuint m_buffer_object;
+        bool m_moved;
+
+        explicit constexpr attribute_buffer_object_t(attribute_location_t attribute_location, GLuint buffer_object) noexcept
+            : m_attribute_location(attribute_location), m_buffer_object(buffer_object), m_moved(false) {}
+
+        explicit constexpr attribute_buffer_object_t(GLuint buffer_object) noexcept
+            : m_attribute_location(0), m_buffer_object(buffer_object), m_moved(false) {}
+
+
+    public:
+        attribute_buffer_object_t() = delete;
+
+
+        constexpr attribute_buffer_object_t(attribute_buffer_object_t&& other) noexcept: m_attribute_location(other.m_attribute_location), m_buffer_object(other.m_buffer_object), m_moved(false) {
+            other.m_moved = true;
+        }
+
+        ~attribute_buffer_object_t() {
+            if (!m_moved) {
+                std::cerr << "Deleted buffer object" << std::endl;
+                glDeleteBuffers(1, &m_buffer_object);
+            }
+        }
+
+        void bind() const noexcept {
+            glBindBuffer(Target, m_buffer_object);
+        }
+
+        template<typename TContainer>
+        void set_data(const TContainer& data) const noexcept {
+            static_assert(std::is_same_v<typename TContainer::value_type, TValue>);
+
+            bind();
+            glBufferData(Target, data.size() * sizeof(TValue), data.data(), Usage);
+        }
+
+        template<GLenum ETarget = Target, typename = std::enable_if_t<ETarget != GL_ELEMENT_ARRAY_BUFFER>>
+        void upload() const noexcept {
+            auto iterations = 1;
+
+            // mat4 use 4 locations
+            if constexpr (std::is_same_v<TValue, glm::mat4>) {
+                iterations = 4;
+            }
+
+            // Set location data
+            for (auto i = 0; i < iterations; i++) {
+                const auto location = m_attribute_location.attribute_location() + i;
+                glEnableVertexAttribArray(location);
+                glVertexAttribPointer(location, Size, Type, GL_FALSE, sizeof(TValue), (const GLvoid*)(sizeof(GLfloat) * i * Size));
+                if constexpr (Instanced) {
+                    glVertexAttribDivisor(location, 1);
+                }
+                else {
+                    glVertexAttribDivisor(location, 0);
+                }
+            }
+        }
+
+        template<GLenum ETarget, typename = std::enable_if_t<ETarget == GL_ELEMENT_ARRAY_BUFFER>>
+        static attribute_buffer_object_t create_buffer_object() {
+            GLuint buffer_object;
+            glGenBuffers(1, &buffer_object);
+            glBindBuffer(Target, buffer_object);
+
+            return attribute_buffer_object_t(buffer_object);
+
+        }
+
+        template<typename TContainer, GLenum ETarget = Target, typename = std::enable_if_t<ETarget == GL_ELEMENT_ARRAY_BUFFER>>
+        static attribute_buffer_object_t create_buffer_object(const TContainer& data) {
+            static_assert(std::is_same_v<typename TContainer::value_type, TValue>);
+
+            GLuint buffer_object;
+            glGenBuffers(1, &buffer_object);
+            glBindBuffer(Target, buffer_object);
+            glBufferData(Target, data.size() * sizeof(TValue), data.data(), Usage);
+
+            return attribute_buffer_object_t(buffer_object);
+
+        }
+
+        template<GLenum ETarget = Target, typename = std::enable_if_t<ETarget != GL_ELEMENT_ARRAY_BUFFER>>
+        static attribute_buffer_object_t create_buffer_object(const program_t& program, const char* attribute_name) noexcept {
+            auto attribute_location = get_attribute_location(program, attribute_name);
+
+            GLuint buffer_object;
+            glGenBuffers(1, &buffer_object);
+            glBindBuffer(Target, buffer_object);
+
+            return attribute_buffer_object_t(attribute_location, buffer_object);
+        }
+
+        template<typename TContainer, GLenum ETarget = Target, typename = std::enable_if_t<ETarget != GL_ELEMENT_ARRAY_BUFFER>>
+        static attribute_buffer_object_t create_buffer_object(const TContainer& data, const program_t& program, const char* attribute_name) noexcept {
+            static_assert(std::is_same_v<typename TContainer::value_type, TValue>);
+
+            auto attribute_location = get_attribute_location(program, attribute_name);
+
+            GLuint buffer_object;
+            glGenBuffers(1, &buffer_object);
+            glBindBuffer(Target, buffer_object);
+            glBufferData(Target, data.size() * sizeof(TValue), data.data(), Usage);
+
+            return attribute_buffer_object_t(attribute_location, buffer_object);
+        }
+    };
+
     using shader_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
     using vertex_array_object_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
-    using vertex_buffer_object_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
-    using index_buffer_object_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
-    using texture_coordinate_buffer_object_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
+    using vertex_buffer_object_t = attribute_buffer_object_t<glm::vec2, GL_ARRAY_BUFFER, 2, GL_FLOAT>;
+    using index_buffer_object_t = attribute_buffer_object_t<GLuint, GL_ELEMENT_ARRAY_BUFFER, -1, GL_UNSIGNED_INT>;
+    using texture_coordinate_buffer_object_t = attribute_buffer_object_t<glm::vec2, GL_ARRAY_BUFFER, 2, GL_FLOAT>;
+    using model_matrix_buffer_object_t = attribute_buffer_object_t<glm::mat4, GL_ARRAY_BUFFER, 4, GL_FLOAT, true, GL_DYNAMIC_DRAW>;
+    using model_color_buffer_object_t = attribute_buffer_object_t<glm::vec3, GL_ARRAY_BUFFER, 3, GL_FLOAT, true, GL_DYNAMIC_DRAW>;
+    using vertex_width_buffer_object_t = attribute_buffer_object_t<glm::vec2, GL_ARRAY_BUFFER, 2, GL_FLOAT, true, GL_DYNAMIC_DRAW>;
+
+
 
     void enable(GLenum cap) noexcept {
         glEnable(cap);
@@ -37,7 +195,7 @@ namespace gl {
             exit(EXIT_FAILURE);
         }
 
-        return program_t(std::move(program), [](auto program) { glDeleteProgram(program); });
+        return program_t(program, [](auto program) { glDeleteProgram(program); });
     }
 
     shader_t create_shader(GLenum type) noexcept {
@@ -49,7 +207,7 @@ namespace gl {
         }
 
 
-        return shader_t(std::move(shader), [](auto shader) { glDeleteShader(shader); });
+        return shader_t(shader, [](auto shader) { glDeleteShader(shader); });
     }
 
     auto shader_source(const shader_t& shader, const GLchar* source) noexcept {
@@ -114,17 +272,6 @@ namespace gl {
         glUseProgram(0);
     }
 
-    auto get_attribute_location(const program_t& program, const char* name) noexcept {
-        auto attribute = glGetAttribLocation(program.value(), name);
-
-        if (attribute == -1) {
-            std::cerr << "Failed to get attribute location " << name << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        return attribute;
-    }
-
     auto get_uniform_location(const program_t& program, const char* name) noexcept {
         auto uniform = glGetUniformLocation(program.value(), name);
 
@@ -133,7 +280,7 @@ namespace gl {
             //exit(EXIT_FAILURE);
         }
 
-        return uniform;
+        return uniform_location_t(uniform);
     }
 
     auto clear_color(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) noexcept {
@@ -144,34 +291,12 @@ namespace gl {
         glClear(mask);
     }
 
-    auto bind_vertex_buffer_object(const vertex_buffer_object_t& buffer_object) noexcept {
-        glBindBuffer(GL_ARRAY_BUFFER, buffer_object.value());
-    }
-
-    auto generate_vertex_buffer_object(const std::vector<GLfloat>& vertex_data) noexcept {
-
-        auto leaked_data = new GLfloat[vertex_data.size()];
-        std::copy(vertex_data.begin(), vertex_data.end(), leaked_data);
-
-        GLuint vertex_buffer_object;
-        glGenBuffers(1, &vertex_buffer_object);
-        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_object);
-        glBufferData(GL_ARRAY_BUFFER, vertex_data.size() * sizeof(GLfloat), leaked_data, GL_STATIC_DRAW);
-
-        return vertex_buffer_object_t(std::move(vertex_buffer_object), [](GLuint vertex_buffer_object) { glDeleteBuffers(1, &vertex_buffer_object); });
-    }
-
-    auto bind_index_buffer_object(const index_buffer_object_t& buffer_object) noexcept {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer_object.value());
-    }
-
-    auto generate_index_buffer_object(const std::vector<GLuint>& index_data) noexcept {
-        GLuint index_buffer_object;
-        glGenBuffers(1, &index_buffer_object);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_object);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_data.size() * sizeof(GLuint), index_data.data(), GL_STATIC_DRAW);
-
-        return index_buffer_object_t(std::move(index_buffer_object), [](GLuint index_buffer_object) { glDeleteBuffers(1, &index_buffer_object); });
+    template<typename TContainer, GLenum Target, GLenum Usage = GL_STATIC_DRAW, typename TValue = typename TContainer::value_type>
+    auto generate_buffer_object(const TContainer& data) noexcept {
+        GLuint buffer_object;
+        glGenBuffers(1, &buffer_object);
+        glBindBuffer(Target, buffer_object);
+        glBufferData(Target, data.size() * sizeof(TValue), data.data(), Usage);
     }
 
     auto generate_vertex_array_object() noexcept {
@@ -179,32 +304,25 @@ namespace gl {
         glGenVertexArrays(1, &vertex_array_object);
         glBindVertexArray(vertex_array_object);
 
-        return vertex_array_object_t(std::move(vertex_array_object), [](GLuint vertex_array_object) {glDeleteVertexArrays(1, &vertex_array_object); });
+        return vertex_array_object_t(vertex_array_object, [](GLuint vertex_array_object) {glDeleteVertexArrays(1, &vertex_array_object); });
     }
 
-    auto generate_texture_coordinate_buffer_object(const std::vector<GLfloat>& texture_coordinate_data) noexcept {
+    template<typename TContainer, typename TValue = typename TContainer::value_type>
+    auto generate_texture_coordinate_buffer_object(const TContainer& texture_coordinate_data) noexcept {
         GLuint texture_coordinate_buffer_object;
         glGenBuffers(1, &texture_coordinate_buffer_object);
         glBindBuffer(GL_ARRAY_BUFFER, texture_coordinate_buffer_object);
-        glBufferData(GL_ARRAY_BUFFER, texture_coordinate_data.size() * sizeof(GLfloat), texture_coordinate_data.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, texture_coordinate_data.size() * sizeof(TValue), texture_coordinate_data.data(), GL_STATIC_DRAW);
 
         return texture_coordinate_buffer_object_t(std::move(texture_coordinate_buffer_object), [](GLuint texture_coordinate_buffer) {glDeleteBuffers(1, &texture_coordinate_buffer); });
     }
 
-    auto bind_texture_coordinate_buffer_object(const texture_coordinate_buffer_object_t& texture_coordinate_buffer_object) noexcept {
-        glBindBuffer(GL_ARRAY_BUFFER, texture_coordinate_buffer_object.value());
+    auto vertex_attrib_pointer(const attribute_location_t& attribute) noexcept {
+        glVertexAttribPointer(attribute.attribute_location(), 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
     }
 
-    auto enable_vertex_attribute_array(GLint attribute) noexcept {
-        glEnableVertexAttribArray(attribute);
-    }
-
-    auto disable_vertex_attribute_array(GLint attribute) noexcept {
-        glDisableVertexAttribArray(attribute);
-    }
-
-    auto vertex_attrib_pointer(GLuint index) noexcept {
-        glVertexAttribPointer(index, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
+    auto uniform_matrix(const uniform_location_t& uniform, const glm::mat4& matrix) noexcept {
+        glUniformMatrix4fv(uniform.uniform_location(), 1, GL_FALSE, glm::value_ptr(matrix));
     }
 
     auto draw_elements(GLenum mode, GLsizei count, GLenum type) noexcept {

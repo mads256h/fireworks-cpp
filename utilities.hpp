@@ -15,8 +15,15 @@ class raii_wrapper {
 
     bool m_moved;
 
+
 public:
-    raii_wrapper(T&& value, TDestroyer&& destroyer)
+    raii_wrapper() = delete;
+
+    template <typename U = T>
+    raii_wrapper(T value, TDestroyer&& destroyer, std::enable_if_t<std::is_trivial_v<U>>* = nullptr) : m_value(value), m_destroyer(std::forward<TDestroyer>(destroyer)), m_moved(false) {}
+
+    template <typename U = T>
+    raii_wrapper(T&& value, TDestroyer&& destroyer, std::enable_if_t<!std::is_trivial_v<U>>* = nullptr)
         : m_value(std::forward<T>(value)), m_destroyer(std::forward<TDestroyer>(destroyer)), m_moved(false) { }
 
 

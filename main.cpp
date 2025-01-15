@@ -6,6 +6,8 @@
 #include "wrappers/glew.hpp"
 #include "wrappers/opengl.hpp"
 
+#include "primitives.hpp"
+
 #include "generated/resources.hpp"
 
 #include <cstdlib>
@@ -14,21 +16,37 @@
 
 using namespace std::string_view_literals;
 
+constexpr std::array<glm::vec2, 4> vertex_positions = {
+    glm::vec2{-0.5f, -0.5f},
+     {0.5f, -0.5f},
+     {0.5f,  0.5f},
+    {-0.5f,  0.5f}
+};
+
+constexpr std::array<glm::vec2, 4> vertex_uvs = {
+    glm::vec2{0.0f, 0.0f},
+    {1.0f, 0.0f},
+    {1.0f, 1.0f},
+    {0.0f, 1.0f}
+};
+
+constexpr std::array<GLuint, 4> vertex_indices = {0, 1, 2, 3};
+
 struct shader_stuff {
     gl::program_t program;
     gl::shader_t vertex_shader;
     gl::shader_t fragment_shader;
-    GLint vertex_position_attribute;
-    GLint vertex_uv_attribute;
-    GLint projection_uniform;
-    GLint model_uniform;
+    gl::uniform_location_t projection_uniform;
     gl::vertex_array_object_t vertex_array_object;
     gl::vertex_buffer_object_t vertex_buffer_object;
     gl::index_buffer_object_t index_buffer_object;
     gl::texture_coordinate_buffer_object_t texture_coordinate_buffer_object;
+    gl::model_matrix_buffer_object_t model_matrix_buffer_object;
+    gl::model_color_buffer_object_t model_color_buffer_object;
+    gl::vertex_width_buffer_object_t vertex_width_buffer_object;
 };
 shader_stuff init_gl();
-void render(const shader_stuff& stuff, const glm::mat4& projection);
+void render(const shader_stuff& stuff, const glm::mat4& projection_matrix, float delta_time, const std::vector<line>& lines);
 
 void GLAPIENTRY debug_message_callback(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void*);
 
@@ -38,7 +56,14 @@ int main() {
     sdl::init_sub_system(SDL_INIT_EVENTS);
 
     {
+        std::vector<line> lines;
         auto quit = false;
+        bool got_first_point = false;
+        glm::vec2 first_point = glm::vec2{0.0f};
+
+        const auto performance_frequency = static_cast<double>(sdl::get_performance_frequency());
+        auto delta_time = 0.016f; // 1 frame at 60 fps initially.
+        auto last_time = static_cast<float>(static_cast<double>(sdl::get_performance_counter()) / performance_frequency);
 
         sdl::gl_set_attribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
         sdl::gl_set_attribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
@@ -60,7 +85,7 @@ int main() {
             for (auto pool_event_result = sdl::pool_event(); pool_event_result.pending_event; pool_event_result = sdl::pool_event()) {
                 switch (pool_event_result.event.type) {
                     case SDL_QUIT:
-                        std::cout << "Quitting..." << "\n";
+                        std::cout << "Quitting..." << std::endl;
                         quit = true;
                         break;
 
@@ -68,7 +93,16 @@ int main() {
                         if (pool_event_result.event.button.button == SDL_BUTTON_LEFT) {
                             auto x = pool_event_result.event.button.x;
                             auto y = pool_event_result.event.button.y;
-                            std::cout << "button pressed at (" << x << ", " << y << ")\n";
+                            if (!got_first_point) {
+                                first_point = glm::vec2{x, y};
+                                got_first_point = true;
+                            }
+                            else {
+                                glm::vec2 end_position{x, y};
+                                lines.push_back({first_point, end_position, glm::vec3(1.0f), 50.0f, 50.0f});
+                                got_first_point = false;
+                            }
+                            std::cout << "button pressed at (" << x << ", " << y << ")" << std::endl;
                         }
                         break;
 
@@ -77,16 +111,20 @@ int main() {
                             auto x = pool_event_result.event.window.data1;
                             auto y = pool_event_result.event.window.data2;
 
-                            std::cout << "window size: " << x << ", " << y << "\n";
+                            std::cout << "window size: " << x << ", " << y << std::endl;
 
-                            projection_matrix = glm::ortho(0.0f, static_cast<float>(x), 0.0f, static_cast<float>(y), -100.0f, 100.0f);
+                            projection_matrix = glm::ortho(0.0f, static_cast<float>(x), static_cast<float>(y), 0.0f, -1.0f, 1.0f);
                             glViewport(0, 0, x, y);
                         }
                     break;
                 }
             }
 
-            render(stuff, projection_matrix);
+            render(stuff, projection_matrix, delta_time, lines);
+
+            auto now = static_cast<float>(static_cast<double>(sdl::get_performance_counter()) / performance_frequency);
+            delta_time = now - last_time;
+            last_time = now;
 
             sdl::gl_swap_window(window);
         }
@@ -121,85 +159,79 @@ int main() {
 
     gl::link_program(program);
 
-    auto vertex_position_attribute = gl::get_attribute_location(program, "vertex_position");
-    auto vertex_uv_attribute = gl::get_attribute_location(program, "vertex_uv");
-    auto projection_uniform = gl::get_uniform_location(program, "projection");
-    auto model_uniform = gl::get_uniform_location(program, "model");
+    const auto projection_uniform = gl::get_uniform_location(program, "projection_matrix");
 
     // Set clear color to magenta
     gl::clear_color(1.0f, 0.0f, 1.0f, 1.0f);
 
-    //VBO data
-    std::vector<GLfloat> vertex_data =
-    {
-        -0.5f, -0.5f,
-         0.5f, -0.5f,
-         0.5f,  0.5f,
-        -0.5f,  0.5f
-    };
-
-    std::vector<GLfloat> uv = {
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0
-    };
-
-    //IBO data
-    std::vector<GLuint> index_data = { 0, 1, 2, 3 };
-
     auto vertex_array_object = gl::generate_vertex_array_object();
-    auto vertex_buffer_object = gl::generate_vertex_buffer_object(vertex_data);
-    auto index_buffer_object = gl::generate_index_buffer_object(index_data);
-    auto texture_coordinate_buffer_object = gl::generate_texture_coordinate_buffer_object(uv);
+    auto vertex_buffer_object = gl::vertex_buffer_object_t::create_buffer_object(vertex_positions, program, "vertex_position");
+    auto index_buffer_object = gl::index_buffer_object_t::create_buffer_object(vertex_indices);
+    auto texture_coordinate_buffer_object = gl::texture_coordinate_buffer_object_t::create_buffer_object(vertex_uvs, program, "vertex_uv");
+    auto model_matrix_buffer_object = gl::model_matrix_buffer_object_t::create_buffer_object(program, "model_matrix");
+    auto model_color_buffer_object = gl::model_color_buffer_object_t::create_buffer_object(program, "model_color");
+    auto vertex_width_buffer_object = gl::vertex_width_buffer_object_t::create_buffer_object(program, "vertex_width");
 
-    return { std::move(program), std::move(vertex_shader), std::move(fragment_shader), vertex_position_attribute, vertex_uv_attribute, projection_uniform, model_uniform, std::move(vertex_array_object), std::move(vertex_buffer_object), std::move(index_buffer_object), std::move(texture_coordinate_buffer_object) };
+    return {
+        std::move(program),
+        std::move(vertex_shader),
+        std::move(fragment_shader),
+        projection_uniform,
+        std::move(vertex_array_object),
+        std::move(vertex_buffer_object),
+        std::move(index_buffer_object),
+        std::move(texture_coordinate_buffer_object),
+        std::move(model_matrix_buffer_object),
+        std::move(model_color_buffer_object),
+        std::move(vertex_width_buffer_object)
+    };
 }
 
 void debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void *) {
     std::cerr << "GL CALLBACK: " << (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **"sv : ""sv) << std::hex << " type = 0x" << type << ", severity = 0x" << severity << ", message = " << message << std::endl << std::dec;
 }
 
-glm::mat4 make_model_matrix(glm::vec2 position, float rotations_radians, glm::vec2 scale) noexcept
-{
-    auto model_matrix = glm::identity<glm::mat4>();
-    model_matrix = glm::translate(model_matrix, glm::vec3(position.x, position.y, 0.0f));
-    model_matrix = glm::rotate(model_matrix, -rotations_radians, glm::vec3(0.0f, 0.0f, 1.0f));
-    model_matrix = glm::scale(model_matrix, glm::vec3(scale.x, scale.y, 1.0f));
+void render(const shader_stuff& stuff, const glm::mat4& projection_matrix, float delta_time, const std::vector<line>& lines) {
+    std::vector<glm::mat4> model_matrixes;
+    for (auto& line : lines) {
+        model_matrixes.push_back(line.transform_matrix());
+    }
 
-    return model_matrix;
-}
+    std::vector<glm::vec3> model_colors;
+    for (auto& line : lines) {
+        model_colors.push_back(line.color());
+    }
 
-void render(const shader_stuff& stuff, const glm::mat4& projection_matrix) {
-    static float rotation = 0.0f;
-
-    rotation += 0.05f;
-
-    auto model_matrix = make_model_matrix(glm::vec2(200.0f, 200.0f), rotation, glm::vec2(50.0f, 200.0f));
-
-
+    std::vector<glm::vec2> vertex_widths;
+    for (auto& line : lines) {
+        vertex_widths.push_back({line.start_width(), line.end_width()});
+    }
 
     gl::clear(GL_COLOR_BUFFER_BIT);
 
     gl::use_program(stuff.program);
 
 
-    gl::bind_vertex_buffer_object(stuff.vertex_buffer_object);
-    gl::enable_vertex_attribute_array(stuff.vertex_position_attribute);
-    gl::vertex_attrib_pointer(stuff.vertex_position_attribute);
+    stuff.vertex_buffer_object.bind();
+    stuff.vertex_buffer_object.upload();
 
-    gl::bind_texture_coordinate_buffer_object(stuff.texture_coordinate_buffer_object);
-    gl::enable_vertex_attribute_array(stuff.vertex_uv_attribute);
-    gl::vertex_attrib_pointer(stuff.vertex_uv_attribute);
+    stuff.texture_coordinate_buffer_object.bind();
+    stuff.texture_coordinate_buffer_object.upload();
 
-    glUniformMatrix4fv(stuff.projection_uniform, 1, GL_FALSE, glm::value_ptr(projection_matrix));
-    glUniformMatrix4fv(stuff.model_uniform, 1, GL_FALSE, glm::value_ptr(model_matrix));
+    stuff.model_matrix_buffer_object.set_data(model_matrixes);
+    stuff.model_matrix_buffer_object.upload();
 
-    gl::bind_index_buffer_object(stuff.index_buffer_object);
-    gl::draw_elements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT);
+    stuff.model_color_buffer_object.set_data(model_colors);
+    stuff.model_color_buffer_object.upload();
 
-    gl::disable_vertex_attribute_array(stuff.vertex_position_attribute);
-    gl::disable_vertex_attribute_array(stuff.vertex_uv_attribute);
+    stuff.vertex_width_buffer_object.set_data(vertex_widths);
+    stuff.vertex_width_buffer_object.upload();
+
+    gl::uniform_matrix(stuff.projection_uniform, projection_matrix);
+
+    stuff.index_buffer_object.bind();
+    //glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, vertex_indices.size(), lines.size());
 
     gl::unbind_program();
 }
