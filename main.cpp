@@ -68,6 +68,8 @@ int main() {
         sdl::gl_set_attribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
         sdl::gl_set_attribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
         sdl::gl_set_attribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        sdl::gl_set_attribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+        sdl::gl_set_attribute(SDL_GL_MULTISAMPLESAMPLES,8);
 
         auto window = sdl::create_window("Hello World!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 200, 200, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
