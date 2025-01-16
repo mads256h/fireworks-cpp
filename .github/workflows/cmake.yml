@@ -61,7 +61,7 @@ jobs:
 
     - name: run-vcpkg
       if: runner.os == 'Windows'
-      uses: lukka/run-vcpkg@v7.6
+      uses: lukka/run-vcpkg@v11
     
 
     - name: Configure CMake
