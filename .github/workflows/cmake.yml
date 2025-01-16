@@ -83,7 +83,7 @@ jobs:
 
     - name: Show files
       if: runner.os == 'Windows'
-      run: tree ${{ steps.strings.outputs.build-output-dir }}
+      run: tree ${{ steps.strings.outputs.build-output-dir }} /f /a
 
     - name: Upload Build
       uses: actions/upload-artifact@v4.6.0
