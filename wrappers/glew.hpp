@@ -29,12 +29,11 @@
     } while (false)
 
 namespace glew {
-    void init() noexcept {
-        glewExperimental = GL_TRUE;
-        auto result = glewInit();
-        GLEW_QUIT_IF_ERROR(result);
-    }
-
+void init() noexcept {
+    glewExperimental = GL_TRUE;
+    auto result = glewInit();
+    GLEW_QUIT_IF_ERROR(result);
+}
 }
 
 #endif //GLEW_HPP

@@ -4,7 +4,7 @@
 
 #include "opengl.hpp"
 
-gl::attribute_location_t gl::get_attribute_location(const program_t &program, const char *name) noexcept {
+gl::attribute_location_t gl::get_attribute_location(const program_t& program, const char* name) noexcept {
     auto attribute = glGetAttribLocation(program.value(), name);
 
     if (attribute == -1) {
@@ -15,11 +15,11 @@ gl::attribute_location_t gl::get_attribute_location(const program_t &program, co
     return attribute_location_t(attribute);
 }
 
-void gl::enable_vertex_attribute_array(const attribute_location_t &attribute) noexcept {
+void gl::enable_vertex_attribute_array(const attribute_location_t& attribute) noexcept {
     glEnableVertexAttribArray(attribute.attribute_location());
 }
 
-void gl::disable_vertex_attribute_array(const attribute_location_t &attribute) noexcept {
+void gl::disable_vertex_attribute_array(const attribute_location_t& attribute) noexcept {
     glDisableVertexAttribArray(attribute.attribute_location());
 }
 
@@ -31,7 +31,7 @@ void gl::disable(GLenum cap) noexcept {
     glDisable(cap);
 }
 
-void gl::debug_message_callback(GLDEBUGPROC callback, const void *userParameter) noexcept {
+void gl::debug_message_callback(GLDEBUGPROC callback, const void* userParameter) noexcept {
     glDebugMessageCallback(callback, userParameter);
 }
 
@@ -46,7 +46,7 @@ gl::program_t gl::create_program() noexcept {
     return {program, [](auto program) { glDeleteProgram(program); }};
 }
 
-void gl::print_program_info_log(const program_t &program) noexcept {
+void gl::print_program_info_log(const program_t& program) noexcept {
     GLint log_length;
 
     glGetProgramiv(program.value(), GL_INFO_LOG_LENGTH, &log_length);
@@ -57,7 +57,7 @@ void gl::print_program_info_log(const program_t &program) noexcept {
     std::cerr << "Program log:\n" << log.data() << std::endl;
 }
 
-void gl::link_program(const program_t &program) noexcept {
+void gl::link_program(const program_t& program) noexcept {
     glLinkProgram(program.value());
 
     GLint status;
@@ -69,7 +69,7 @@ void gl::link_program(const program_t &program) noexcept {
     }
 }
 
-void gl::use_program(const program_t &program) noexcept {
+void gl::use_program(const program_t& program) noexcept {
     glUseProgram(program.value());
 }
 
@@ -77,7 +77,7 @@ void gl::unbind_program() noexcept {
     glUseProgram(0);
 }
 
-gl::uniform_location_t gl::get_uniform_location(const program_t &program, const char *name) noexcept {
+gl::uniform_location_t gl::get_uniform_location(const program_t& program, const char* name) noexcept {
     auto uniform = glGetUniformLocation(program.value(), name);
 
     if (uniform == -1) {
@@ -101,14 +101,14 @@ gl::vertex_array_object_t gl::generate_vertex_array_object() noexcept {
     glGenVertexArrays(1, &vertex_array_object);
     glBindVertexArray(vertex_array_object);
 
-    return {vertex_array_object, [](GLuint vertex_array_object) {glDeleteVertexArrays(1, &vertex_array_object); }};
+    return {vertex_array_object, [](GLuint vertex_array_object) { glDeleteVertexArrays(1, &vertex_array_object); }};
 }
 
-void gl::vertex_attrib_pointer(const attribute_location_t &attribute) noexcept {
+void gl::vertex_attrib_pointer(const attribute_location_t& attribute) noexcept {
     glVertexAttribPointer(attribute.attribute_location(), 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
 }
 
-void gl::uniform_matrix(const uniform_location_t &uniform, const glm::mat4 &matrix) noexcept {
+void gl::uniform_matrix(const uniform_location_t& uniform, const glm::mat4& matrix) noexcept {
     glUniformMatrix4fv(uniform.uniform_location(), 1, GL_FALSE, glm::value_ptr(matrix));
 }
 

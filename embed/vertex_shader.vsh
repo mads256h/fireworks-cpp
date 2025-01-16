@@ -2,9 +2,9 @@
 
 in vec2 vertex_position;
 in vec2 vertex_uv;
-in mat4 model_matrix; // Instanced
-in vec3 model_color; // Instanced
-in vec2 vertex_width; // Instanced
+in mat4 model_matrix;// Instanced
+in vec3 model_color;// Instanced
+in vec2 vertex_width;// Instanced
 
 out vec2 uv;
 out vec3 color;

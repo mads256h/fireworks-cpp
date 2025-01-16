@@ -16,19 +16,12 @@
 
 using namespace std::string_view_literals;
 
-constexpr std::array<glm::vec2, 4> vertex_positions = {
-    glm::vec2{-0.5f, -0.5f},
-     {0.5f, -0.5f},
-     {0.5f,  0.5f},
-    {-0.5f,  0.5f}
-};
+constexpr std::array<glm::vec2, 4> vertex_positions = {glm::vec2{-0.5f, -0.5f},
+                                                       {0.5f, -0.5f},
+                                                       {0.5f, 0.5f},
+                                                       {-0.5f, 0.5f}};
 
-constexpr std::array<glm::vec2, 4> vertex_uvs = {
-    glm::vec2{0.0f, 0.0f},
-    {1.0f, 0.0f},
-    {1.0f, 1.0f},
-    {0.0f, 1.0f}
-};
+constexpr std::array<glm::vec2, 4> vertex_uvs = {glm::vec2{0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 1.0f}};
 
 constexpr std::array<GLuint, 4> vertex_indices = {0, 1, 2, 3};
 
@@ -45,17 +38,20 @@ struct shader_stuff {
     gl::model_color_buffer_object_t model_color_buffer_object;
     gl::vertex_width_buffer_object_t vertex_width_buffer_object;
 };
+
 shader_stuff init_gl();
-void render(const shader_stuff& stuff, const glm::mat4& projection_matrix, float delta_time, const std::vector<line>& lines);
+
+void render(const shader_stuff& stuff,
+            const glm::mat4& projection_matrix,
+            float delta_time,
+            const std::vector<line>& lines);
 
 void GLAPIENTRY debug_message_callback(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void*);
 
 int main() {
     sdl::init_sub_system(SDL_INIT_TIMER);
     sdl::init_sub_system(SDL_INIT_VIDEO);
-    sdl::init_sub_system(SDL_INIT_EVENTS);
-
-    {
+    sdl::init_sub_system(SDL_INIT_EVENTS); {
         std::vector<line> lines;
         auto quit = false;
         bool got_first_point = false;
@@ -63,15 +59,17 @@ int main() {
 
         const auto performance_frequency = static_cast<double>(sdl::get_performance_frequency());
         auto delta_time = 0.016f; // 1 frame at 60 fps initially.
-        auto last_time = static_cast<float>(static_cast<double>(sdl::get_performance_counter()) / performance_frequency);
+        auto last_time = static_cast<float>(static_cast<double>(sdl::get_performance_counter()) /
+                                            performance_frequency);
 
         sdl::gl_set_attribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
         sdl::gl_set_attribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
         sdl::gl_set_attribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
         sdl::gl_set_attribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-        sdl::gl_set_attribute(SDL_GL_MULTISAMPLESAMPLES,8);
+        sdl::gl_set_attribute(SDL_GL_MULTISAMPLESAMPLES, 8);
 
-        auto window = sdl::create_window("Hello World!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 200, 200, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+        auto window = sdl::create_window("Hello World!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 200, 200,
+                                         SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
         auto gl_context = sdl::gl_create_context(window);
         glew::init();
@@ -84,22 +82,20 @@ int main() {
         auto projection_matrix = glm::identity<glm::mat4>();
 
         while (!quit) {
-            for (auto pool_event_result = sdl::pool_event(); pool_event_result.pending_event; pool_event_result = sdl::pool_event()) {
+            for (auto pool_event_result = sdl::pool_event(); pool_event_result.pending_event;
+                 pool_event_result = sdl::pool_event()) {
                 switch (pool_event_result.event.type) {
-                    case SDL_QUIT:
-                        std::cout << "Quitting..." << std::endl;
+                    case SDL_QUIT: std::cout << "Quitting..." << std::endl;
                         quit = true;
                         break;
 
-                    case SDL_MOUSEBUTTONDOWN:
-                        if (pool_event_result.event.button.button == SDL_BUTTON_LEFT) {
+                    case SDL_MOUSEBUTTONDOWN: if (pool_event_result.event.button.button == SDL_BUTTON_LEFT) {
                             auto x = pool_event_result.event.button.x;
                             auto y = pool_event_result.event.button.y;
                             if (!got_first_point) {
                                 first_point = glm::vec2{x, y};
                                 got_first_point = true;
-                            }
-                            else {
+                            } else {
                                 glm::vec2 end_position{x, y};
                                 lines.emplace_back(first_point, end_position, glm::vec3(1.0f), 50.0f, 20.0f);
                                 got_first_point = false;
@@ -108,17 +104,17 @@ int main() {
                         }
                         break;
 
-                    case SDL_WINDOWEVENT:
-                        if (pool_event_result.event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    case SDL_WINDOWEVENT: if (pool_event_result.event.window.event == SDL_WINDOWEVENT_RESIZED) {
                             auto x = pool_event_result.event.window.data1;
                             auto y = pool_event_result.event.window.data2;
 
                             std::cout << "window size: " << x << ", " << y << std::endl;
 
-                            projection_matrix = glm::ortho(0.0f, static_cast<float>(x), static_cast<float>(y), 0.0f, -1.0f, 1.0f);
+                            projection_matrix = glm::ortho(0.0f, static_cast<float>(x), static_cast<float>(y), 0.0f,
+                                                           -1.0f, 1.0f);
                             glViewport(0, 0, x, y);
                         }
-                    break;
+                        break;
                 }
             }
 
@@ -137,7 +133,7 @@ int main() {
     return EXIT_SUCCESS;
 }
 
- shader_stuff init_gl() {
+shader_stuff init_gl() {
     gl::enable(GL_DEBUG_OUTPUT);
     gl::debug_message_callback(debug_message_callback, nullptr);
 
@@ -166,123 +162,113 @@ int main() {
     gl::clear_color(1.0f, 0.0f, 1.0f, 1.0f);
 
     auto vertex_array_object = gl::generate_vertex_array_object();
-    auto vertex_buffer_object = gl::vertex_buffer_object_t::create_buffer_object(vertex_positions, program, "vertex_position");
+    auto vertex_buffer_object = gl::vertex_buffer_object_t::create_buffer_object(
+            vertex_positions, program, "vertex_position");
     auto index_buffer_object = gl::index_buffer_object_t::create_buffer_object(vertex_indices);
-    auto texture_coordinate_buffer_object = gl::texture_coordinate_buffer_object_t::create_buffer_object(vertex_uvs, program, "vertex_uv");
+    auto texture_coordinate_buffer_object = gl::texture_coordinate_buffer_object_t::create_buffer_object(
+            vertex_uvs, program, "vertex_uv");
     auto model_matrix_buffer_object = gl::model_matrix_buffer_object_t::create_buffer_object(program, "model_matrix");
     auto model_color_buffer_object = gl::model_color_buffer_object_t::create_buffer_object(program, "model_color");
     auto vertex_width_buffer_object = gl::vertex_width_buffer_object_t::create_buffer_object(program, "vertex_width");
 
-    return {
-        std::move(program),
-        std::move(vertex_shader),
-        std::move(fragment_shader),
-        projection_uniform,
-        std::move(vertex_array_object),
-        std::move(vertex_buffer_object),
-        std::move(index_buffer_object),
-        std::move(texture_coordinate_buffer_object),
-        std::move(model_matrix_buffer_object),
-        std::move(model_color_buffer_object),
-        std::move(vertex_width_buffer_object)
-    };
+    return {std::move(program),
+            std::move(vertex_shader),
+            std::move(fragment_shader),
+            projection_uniform,
+            std::move(vertex_array_object),
+            std::move(vertex_buffer_object),
+            std::move(index_buffer_object),
+            std::move(texture_coordinate_buffer_object),
+            std::move(model_matrix_buffer_object),
+            std::move(model_color_buffer_object),
+            std::move(vertex_width_buffer_object)};
 }
 
-void debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void *) {
+void debug_message_callback(GLenum source,
+                            GLenum type,
+                            GLuint id,
+                            GLenum severity,
+                            GLsizei length,
+                            const GLchar* message,
+                            const void*) {
     const char* _source;
     const char* _type;
     const char* _severity;
 
     switch (source) {
-        case GL_DEBUG_SOURCE_API:
-        _source = "API";
-        break;
+        case GL_DEBUG_SOURCE_API: _source = "API";
+            break;
 
-        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-        _source = "WINDOW SYSTEM";
-        break;
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM: _source = "WINDOW SYSTEM";
+            break;
 
-        case GL_DEBUG_SOURCE_SHADER_COMPILER:
-        _source = "SHADER COMPILER";
-        break;
+        case GL_DEBUG_SOURCE_SHADER_COMPILER: _source = "SHADER COMPILER";
+            break;
 
-        case GL_DEBUG_SOURCE_THIRD_PARTY:
-        _source = "THIRD PARTY";
-        break;
+        case GL_DEBUG_SOURCE_THIRD_PARTY: _source = "THIRD PARTY";
+            break;
 
-        case GL_DEBUG_SOURCE_APPLICATION:
-        _source = "APPLICATION";
-        break;
+        case GL_DEBUG_SOURCE_APPLICATION: _source = "APPLICATION";
+            break;
 
-        case GL_DEBUG_SOURCE_OTHER:
-        _source = "UNKNOWN";
-        break;
+        case GL_DEBUG_SOURCE_OTHER: _source = "UNKNOWN";
+            break;
 
-        default:
-        _source = "UNKNOWN";
-        break;
+        default: _source = "UNKNOWN";
+            break;
     }
 
     switch (type) {
-        case GL_DEBUG_TYPE_ERROR:
-        _type = "ERROR";
-        break;
+        case GL_DEBUG_TYPE_ERROR: _type = "ERROR";
+            break;
 
-        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-        _type = "DEPRECATED BEHAVIOR";
-        break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: _type = "DEPRECATED BEHAVIOR";
+            break;
 
-        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-        _type = "UNDEFINED BEHAVIOR";
-        break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: _type = "UNDEFINED BEHAVIOR";
+            break;
 
-        case GL_DEBUG_TYPE_PORTABILITY:
-        _type = "PORTABILITY";
-        break;
+        case GL_DEBUG_TYPE_PORTABILITY: _type = "PORTABILITY";
+            break;
 
-        case GL_DEBUG_TYPE_PERFORMANCE:
-        _type = "PERFORMANCE";
-        break;
+        case GL_DEBUG_TYPE_PERFORMANCE: _type = "PERFORMANCE";
+            break;
 
-        case GL_DEBUG_TYPE_OTHER:
-        _type = "OTHER";
-        break;
+        case GL_DEBUG_TYPE_OTHER: _type = "OTHER";
+            break;
 
-        case GL_DEBUG_TYPE_MARKER:
-        _type = "MARKER";
-        break;
+        case GL_DEBUG_TYPE_MARKER: _type = "MARKER";
+            break;
 
-        default:
-        _type = "UNKNOWN";
-        break;
+        default: _type = "UNKNOWN";
+            break;
     }
 
     switch (severity) {
-        case GL_DEBUG_SEVERITY_HIGH:
-        _severity = "HIGH";
-        break;
+        case GL_DEBUG_SEVERITY_HIGH: _severity = "HIGH";
+            break;
 
-        case GL_DEBUG_SEVERITY_MEDIUM:
-        _severity = "MEDIUM";
-        break;
+        case GL_DEBUG_SEVERITY_MEDIUM: _severity = "MEDIUM";
+            break;
 
-        case GL_DEBUG_SEVERITY_LOW:
-        _severity = "LOW";
-        break;
+        case GL_DEBUG_SEVERITY_LOW: _severity = "LOW";
+            break;
 
-        case GL_DEBUG_SEVERITY_NOTIFICATION:
-        _severity = "NOTIFICATION";
-        break;
+        case GL_DEBUG_SEVERITY_NOTIFICATION: _severity = "NOTIFICATION";
+            break;
 
-        default:
-        _severity = "UNKNOWN";
-        break;
+        default: _severity = "UNKNOWN";
+            break;
     }
 
-    std::cerr << "GL CALLBACK: source = " << _source << ", type = " << _type  << ", severity = " << _severity << ", message = " << message << std::endl;
+    std::cerr << "GL CALLBACK: source = " << _source << ", type = " << _type << ", severity = " << _severity <<
+            ", message = " << message << std::endl;
 }
 
-void render(const shader_stuff& stuff, const glm::mat4& projection_matrix, float delta_time, const std::vector<line>& lines) {
+void render(const shader_stuff& stuff,
+            const glm::mat4& projection_matrix,
+            float delta_time,
+            const std::vector<line>& lines) {
     std::vector<glm::mat4> model_matrixes;
     for (auto& line : lines) {
         model_matrixes.push_back(line.transform_matrix());

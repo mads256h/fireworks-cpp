@@ -21,7 +21,7 @@ function(create_resources dir output)
     # Collect input files
     file(GLOB bins ${dir}/*)
     # Iterate through input files
-    foreach(bin ${bins})
+    foreach (bin ${bins})
         # Get short filename
         string(REGEX MATCH "([^/]+)$" filename ${bin})
         # Replace filename spaces & extension separator for C compatibility
@@ -34,7 +34,7 @@ function(create_resources dir output)
         string(REGEX REPLACE "\n" "\\\\n" filedata "${filedata}")
         # Append data to output file
         file(APPEND ${output} "constexpr auto ${filename} = \"${filedata}\"sv;\n")
-    endforeach()
+    endforeach ()
     file(APPEND ${output} "}")
 endfunction()
 
