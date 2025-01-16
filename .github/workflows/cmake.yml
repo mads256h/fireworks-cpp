@@ -75,7 +75,7 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -S ${{ github.workspace }}
-        ${{ runner.os == 'Windows' && '-D CMAKE_TOOLCHAIN_FILE=\$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake' || '' }}
+        ${{ runner.os == 'Windows' && '-D CMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake' || '' }}
 
     - name: Build
       if: runner.os == 'Linux'
