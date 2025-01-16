@@ -9,6 +9,10 @@
 #include <iostream>
 #include <memory>
 
+#if !defined(__PRETTY_FUNCTION__) && !defined(__GNUC__)
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
+
 #define SDL_QUIT_WITH_ERROR() \
     do { \
         auto error = SDL_GetError(); \
