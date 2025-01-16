@@ -81,6 +81,10 @@ jobs:
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
+    - name: Show files
+      if: runner.os == 'Windows'
+      run: tree ${{ steps.strings.outputs.build-output-dir }}
+
     - name: Upload Build
       uses: actions/upload-artifact@v4.6.0
       with:
