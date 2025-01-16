@@ -89,7 +89,7 @@ jobs:
       uses: actions/upload-artifact@v4.6.0
       with:
         name: ${{ matrix.os }}-${{ matrix.cpp_compiler }}-${{ matrix.build_type }}
-        path: ${{ steps.strings.outputs.build-output-dir }}/fireworks_cpp${{ runner.os == 'Windows' && '.exe' || '' }} 
+        path: ${{ steps.strings.outputs.build-output-dir }}/${{ runner.os == 'Windows' && format('{0}/fireworks_cpp.exe', matrix.build_type) || 'fireworks_cpp' }} 
 
 
     - name: Test
