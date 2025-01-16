@@ -55,7 +55,8 @@ create_resources(embed "generated/resources.hpp")
 add_executable(fireworks_cpp main.cpp
         primitives.cpp
         wrappers/opengl/shader.cpp
-        wrappers/opengl/shader.hpp
-        wrappers/opengl.cpp)
+        wrappers/opengl.cpp
+        wrappers/sdl.cpp
+        wrappers/glew.cpp)
 target_link_libraries(fireworks_cpp ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${GLM_LIBRARIES})
 

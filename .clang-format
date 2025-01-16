@@ -10,7 +10,7 @@ AlignOperands: true
 AlignTrailingComments: false
 AllowAllConstructorInitializersOnNextLine: true
 AllowShortBlocksOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: true
+AlwaysBreakAfterDefinitionReturnType: false
 AlwaysBreakTemplateDeclarations: Yes
 BinPackParameters: false
 BraceWrapping: 

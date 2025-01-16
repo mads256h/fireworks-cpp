@@ -51,7 +51,7 @@ void render(const shader_stuff& stuff,
 
 void GLAPIENTRY debug_message_callback(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void*);
 
-extern "C" int main(int argc, char** argv) {
+extern "C" int main(int, char**) {
     sdl::init_sub_system(SDL_INIT_TIMER);
     sdl::init_sub_system(SDL_INIT_VIDEO);
     sdl::init_sub_system(SDL_INIT_EVENTS); {
@@ -88,11 +88,13 @@ extern "C" int main(int argc, char** argv) {
             for (auto pool_event_result = sdl::pool_event(); pool_event_result.pending_event;
                  pool_event_result = sdl::pool_event()) {
                 switch (pool_event_result.event.type) {
-                    case SDL_QUIT: std::cout << "Quitting..." << std::endl;
+                    case SDL_QUIT:
+                        std::cout << "Quitting..." << std::endl;
                         quit = true;
                         break;
 
-                    case SDL_MOUSEBUTTONDOWN: if (pool_event_result.event.button.button == SDL_BUTTON_LEFT) {
+                    case SDL_MOUSEBUTTONDOWN:
+                        if (pool_event_result.event.button.button == SDL_BUTTON_LEFT) {
                             auto x = pool_event_result.event.button.x;
                             auto y = pool_event_result.event.button.y;
                             if (!got_first_point) {
@@ -107,7 +109,8 @@ extern "C" int main(int argc, char** argv) {
                         }
                         break;
 
-                    case SDL_WINDOWEVENT: if (pool_event_result.event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    case SDL_WINDOWEVENT:
+                        if (pool_event_result.event.window.event == SDL_WINDOWEVENT_RESIZED) {
                             auto x = pool_event_result.event.window.data1;
                             auto y = pool_event_result.event.window.data2;
 
@@ -189,9 +192,9 @@ shader_stuff init_gl() {
 
 void debug_message_callback(GLenum source,
                             GLenum type,
-                            GLuint id,
+                            GLuint,
                             GLenum severity,
-                            GLsizei length,
+                            GLsizei,
                             const GLchar* message,
                             const void*) {
     const char* _source;
@@ -199,68 +202,88 @@ void debug_message_callback(GLenum source,
     const char* _severity;
 
     switch (source) {
-        case GL_DEBUG_SOURCE_API: _source = "API";
+        case GL_DEBUG_SOURCE_API:
+            _source = "API";
             break;
 
-        case GL_DEBUG_SOURCE_WINDOW_SYSTEM: _source = "WINDOW SYSTEM";
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+            _source = "WINDOW SYSTEM";
             break;
 
-        case GL_DEBUG_SOURCE_SHADER_COMPILER: _source = "SHADER COMPILER";
+        case GL_DEBUG_SOURCE_SHADER_COMPILER:
+            _source = "SHADER COMPILER";
             break;
 
-        case GL_DEBUG_SOURCE_THIRD_PARTY: _source = "THIRD PARTY";
+        case GL_DEBUG_SOURCE_THIRD_PARTY:
+            _source = "THIRD PARTY";
             break;
 
-        case GL_DEBUG_SOURCE_APPLICATION: _source = "APPLICATION";
+        case GL_DEBUG_SOURCE_APPLICATION:
+            _source = "APPLICATION";
             break;
 
-        case GL_DEBUG_SOURCE_OTHER: _source = "UNKNOWN";
+        case GL_DEBUG_SOURCE_OTHER:
+            _source = "UNKNOWN";
             break;
 
-        default: _source = "UNKNOWN";
+        default:
+            _source = "UNKNOWN";
             break;
     }
 
     switch (type) {
-        case GL_DEBUG_TYPE_ERROR: _type = "ERROR";
+        case GL_DEBUG_TYPE_ERROR:
+            _type = "ERROR";
             break;
 
-        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: _type = "DEPRECATED BEHAVIOR";
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+            _type = "DEPRECATED BEHAVIOR";
             break;
 
-        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: _type = "UNDEFINED BEHAVIOR";
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+            _type = "UNDEFINED BEHAVIOR";
             break;
 
-        case GL_DEBUG_TYPE_PORTABILITY: _type = "PORTABILITY";
+        case GL_DEBUG_TYPE_PORTABILITY:
+            _type = "PORTABILITY";
             break;
 
-        case GL_DEBUG_TYPE_PERFORMANCE: _type = "PERFORMANCE";
+        case GL_DEBUG_TYPE_PERFORMANCE:
+            _type = "PERFORMANCE";
             break;
 
-        case GL_DEBUG_TYPE_OTHER: _type = "OTHER";
+        case GL_DEBUG_TYPE_OTHER:
+            _type = "OTHER";
             break;
 
-        case GL_DEBUG_TYPE_MARKER: _type = "MARKER";
+        case GL_DEBUG_TYPE_MARKER:
+            _type = "MARKER";
             break;
 
-        default: _type = "UNKNOWN";
+        default:
+            _type = "UNKNOWN";
             break;
     }
 
     switch (severity) {
-        case GL_DEBUG_SEVERITY_HIGH: _severity = "HIGH";
+        case GL_DEBUG_SEVERITY_HIGH:
+            _severity = "HIGH";
             break;
 
-        case GL_DEBUG_SEVERITY_MEDIUM: _severity = "MEDIUM";
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            _severity = "MEDIUM";
             break;
 
-        case GL_DEBUG_SEVERITY_LOW: _severity = "LOW";
+        case GL_DEBUG_SEVERITY_LOW:
+            _severity = "LOW";
             break;
 
-        case GL_DEBUG_SEVERITY_NOTIFICATION: _severity = "NOTIFICATION";
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            _severity = "NOTIFICATION";
             break;
 
-        default: _severity = "UNKNOWN";
+        default:
+            _severity = "UNKNOWN";
             break;
     }
 

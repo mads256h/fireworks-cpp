@@ -66,8 +66,7 @@ public:
     attribute_buffer_object_t() = delete;
 
 
-    constexpr
-    attribute_buffer_object_t(attribute_buffer_object_t&& other) noexcept
+    constexpr attribute_buffer_object_t(attribute_buffer_object_t&& other) noexcept
         : m_attribute_location(other.m_attribute_location), m_buffer_object(other.m_buffer_object), m_moved(false) {
         other.m_moved = true;
     }

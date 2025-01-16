@@ -9,6 +9,8 @@
 #include <iostream>
 #include <memory>
 
+#include "../utilities.hpp"
+
 #if !defined(__PRETTY_FUNCTION__) && !defined(__GNUC__)
 #define __PRETTY_FUNCTION__ __FUNCSIG__
 #endif
@@ -34,102 +36,40 @@
 namespace sdl {
 using window_t = std::unique_ptr<SDL_Window, decltype(&SDL_DestroyWindow)>;
 using window_surface_t = SDL_Surface*;
-
-void init_sub_system(Uint32 flags) noexcept {
-    auto result = SDL_InitSubSystem(flags);
-    SDL_QUIT_IF_ERROR(result);
-}
-
-window_t create_window(const char* title, int x, int y, int w, int h, Uint32 flags) noexcept {
-    auto window = SDL_CreateWindow(title, x, y, w, h, flags);
-
-    if (window == nullptr) {
-        SDL_QUIT_WITH_ERROR();
-    }
-
-    return window_t(window, SDL_DestroyWindow);
-}
-
-window_surface_t get_window_surface(const window_t& window) noexcept {
-    auto window_surface = SDL_GetWindowSurface(window.get());
-
-    if (window_surface == nullptr) {
-        SDL_QUIT_WITH_ERROR();
-    }
-
-    return window_surface;
-}
-
-void update_window_surface(const window_t& window) noexcept {
-    auto result = SDL_UpdateWindowSurface(window.get());
-    SDL_QUIT_IF_ERROR(result);
-}
+using opengl_context_t = utilities::raii_wrapper<SDL_GLContext, decltype(&SDL_GL_DeleteContext)>;
 
 struct pool_event_result {
     bool pending_event;
     SDL_Event event;
 };
 
-pool_event_result pool_event() noexcept {
-    SDL_Event event;
-    auto result = SDL_PollEvent(&event);
+void init_sub_system(Uint32 flags) noexcept;
 
-    return pool_event_result{!!result, event};
-}
+window_t create_window(const char* title, int x, int y, int w, int h, Uint32 flags) noexcept;
 
-void fill_rect(window_surface_t surface, const SDL_Rect& rect, Uint32 color) noexcept {
-    auto result = SDL_FillRect(surface, &rect, color);
-    SDL_QUIT_IF_ERROR(result);
-}
+window_surface_t get_window_surface(const window_t& window) noexcept;
 
-void gl_set_attribute(SDL_GLattr attribute, int value) noexcept {
-    auto result = SDL_GL_SetAttribute(attribute, value);
-    SDL_QUIT_IF_ERROR(result);
-}
+void update_window_surface(const window_t& window) noexcept;
 
-auto gl_delete_context(void* context) noexcept {
-    SDL_GL_DeleteContext(context);
-}
+pool_event_result pool_event() noexcept;
 
-auto gl_create_context(const window_t& window) noexcept {
-    auto gl_context = SDL_GL_CreateContext(window.get());
+void fill_rect(window_surface_t surface, const SDL_Rect& rect, Uint32 color) noexcept;
 
-    if (gl_context == nullptr) {
-        SDL_QUIT_WITH_ERROR();
-    }
+void gl_set_attribute(SDL_GLattr attribute, int value) noexcept;
 
-    return gl_context;
-}
+void gl_delete_context(void* context) noexcept;
 
-auto gl_try_use_vsync() noexcept {
-    auto result = SDL_GL_SetSwapInterval(-1);
-    if (result == 0) {
-        return;
-    }
-    std::cerr << "Could not set adaptive vsync\n";
+opengl_context_t gl_create_context(const window_t& window) noexcept;
 
-    result = SDL_GL_SetSwapInterval(1);
-    if (result == 0) {
-        return;
-    }
-    std::cerr << "Could not set vsync\n";
-}
+void gl_try_use_vsync() noexcept;
 
-auto gl_swap_window(const window_t& window) noexcept {
-    SDL_GL_SwapWindow(window.get());
-}
+void gl_swap_window(const window_t& window) noexcept;
 
-auto get_performance_frequency() noexcept {
-    return SDL_GetPerformanceFrequency();
-}
+Uint64 get_performance_frequency() noexcept;
 
-auto get_performance_counter() noexcept {
-    return SDL_GetPerformanceCounter();
-}
+Uint64 get_performance_counter() noexcept;
 
-void quit() noexcept {
-    SDL_Quit();
-}
+void quit() noexcept;
 }
 
 #endif //SDL_HPP

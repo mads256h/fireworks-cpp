@@ -31,16 +31,14 @@ class shader_t {
     bool m_moved;
 
     explicit constexpr shader_t(GLuint shader) noexcept
-        : m_shader(shader),
-          m_moved(false) {
+        : m_shader(shader), m_moved(false) {
     }
 
 public:
     shader_t() = delete;
 
     constexpr shader_t(shader_t&& other) noexcept
-        : m_shader(other.m_shader),
-          m_moved(false) {
+        : m_shader(other.m_shader), m_moved(false) {
         other.m_moved = true;
     }
 
