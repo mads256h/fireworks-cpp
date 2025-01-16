@@ -1,4 +1,4 @@
-name: CMake on multiple platforms
+name: Check ormatting
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
+  formatting:
     runs-on: ubuntu-latest
 
     steps:
