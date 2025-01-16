@@ -1,3 +1,6 @@
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_main.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -48,7 +51,7 @@ void render(const shader_stuff& stuff,
 
 void GLAPIENTRY debug_message_callback(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void*);
 
-int main() {
+extern "C" int main(int argc, char** argv) {
     sdl::init_sub_system(SDL_INIT_TIMER);
     sdl::init_sub_system(SDL_INIT_VIDEO);
     sdl::init_sub_system(SDL_INIT_EVENTS); {
