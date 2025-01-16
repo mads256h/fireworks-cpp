@@ -16,11 +16,10 @@
 #include <type_traits>
 #include <iostream>
 
+#include "opengl/shader.hpp"
 #include "../utilities.hpp"
 
 namespace gl {
-    using program_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
-
     class attribute_location_t {
         GLint m_attribute_location;
 
@@ -37,24 +36,11 @@ namespace gl {
         [[nodiscard]] constexpr GLint uniform_location() const noexcept { return m_uniform_location; }
     };
 
-    auto get_attribute_location(const program_t& program, const char* name) noexcept {
-        auto attribute = glGetAttribLocation(program.value(), name);
+    attribute_location_t get_attribute_location(const program_t& program, const char* name) noexcept;
 
-        if (attribute == -1) {
-            std::cerr << "Failed to get attribute location " << name << std::endl;
-            //exit(EXIT_FAILURE);
-        }
+    void enable_vertex_attribute_array(const attribute_location_t& attribute) noexcept;
 
-        return attribute_location_t(attribute);
-    }
-
-    auto enable_vertex_attribute_array(const attribute_location_t& attribute) noexcept {
-        glEnableVertexAttribArray(attribute.attribute_location());
-    }
-
-    auto disable_vertex_attribute_array(const attribute_location_t& attribute) noexcept {
-        glDisableVertexAttribArray(attribute.attribute_location());
-    }
+    void disable_vertex_attribute_array(const attribute_location_t& attribute) noexcept;
 
     template<typename TValue, GLenum Target, GLint Size, GLenum Type, bool Instanced = false, GLenum Usage = GL_STATIC_DRAW>
     class attribute_buffer_object_t {
@@ -168,7 +154,8 @@ namespace gl {
         }
     };
 
-    using shader_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
+
+
     using vertex_array_object_t = utilities::raii_wrapper<GLuint, void(*)(GLuint)>;
     using vertex_buffer_object_t = attribute_buffer_object_t<glm::vec2, GL_ARRAY_BUFFER, 2, GL_FLOAT>;
     using index_buffer_object_t = attribute_buffer_object_t<GLuint, GL_ELEMENT_ARRAY_BUFFER, -1, GL_UNSIGNED_INT>;
@@ -179,155 +166,35 @@ namespace gl {
 
 
 
-    void enable(GLenum cap) noexcept {
-        glEnable(cap);
-    }
+    void enable(GLenum cap) noexcept;
 
-    void debug_message_callback(GLDEBUGPROC callback, const void* userParameter) noexcept {
-        glDebugMessageCallback(callback, userParameter);
-    }
+    void disable(GLenum cap) noexcept;
 
-    program_t create_program() noexcept {
-        auto program = glCreateProgram();
-        if (program == 0) {
-            // TODO: FIX
-            fprintf(stderr, "Failed to create OpenGL program\n");
-            exit(EXIT_FAILURE);
-        }
+    void debug_message_callback(GLDEBUGPROC callback, const void* userParameter) noexcept;
 
-        return program_t(program, [](auto program) { glDeleteProgram(program); });
-    }
+    program_t create_program() noexcept;
 
-    shader_t create_shader(GLenum type) noexcept {
-        auto shader = glCreateShader(type);
-        if (shader == 0) {
-            // TODO: FIX
-            fprintf(stderr, "Failed to create OpenGL shader\n");
-            exit(EXIT_FAILURE);
-        }
+    void print_program_info_log(const program_t& program) noexcept;
 
+    void link_program(const program_t& program) noexcept;
 
-        return shader_t(shader, [](auto shader) { glDeleteShader(shader); });
-    }
+    void use_program(const program_t& program) noexcept;
 
-    auto shader_source(const shader_t& shader, const GLchar* source) noexcept {
-        glShaderSource(shader.value(), 1, &source, nullptr);
-    }
+    void unbind_program() noexcept;
 
-    auto print_shader_info_log(const shader_t& shader) noexcept {
-        GLint log_length;
+    uniform_location_t get_uniform_location(const program_t& program, const char* name) noexcept;
 
-        glGetShaderiv(shader.value(), GL_INFO_LOG_LENGTH, &log_length);
+    void clear_color(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) noexcept;
 
-        std::vector<char> log(log_length);
-        glGetShaderInfoLog(shader.value(), log_length, &log_length, log.data());
+    void clear(GLbitfield mask) noexcept;
 
-        std::cerr << "Shader log:\n" << log.data() << std::endl;
-    }
+    vertex_array_object_t generate_vertex_array_object() noexcept;
 
-    auto print_program_info_log(const program_t& program) noexcept {
-        GLint log_length;
+    void vertex_attrib_pointer(const attribute_location_t& attribute) noexcept;
 
-        glGetProgramiv(program.value(), GL_INFO_LOG_LENGTH, &log_length);
+    void uniform_matrix(const uniform_location_t& uniform, const glm::mat4& matrix) noexcept;
 
-        std::vector<char> log(log_length);
-        glGetProgramInfoLog(program.value(), log_length, &log_length, log.data());
-
-        std::cerr << "Program log:\n" << log.data() << std::endl;
-    }
-
-    auto compile_shader(const shader_t& shader) noexcept {
-        glCompileShader(shader.value());
-
-        GLint status = GL_FALSE;
-        glGetShaderiv(shader.value(), GL_COMPILE_STATUS, &status);
-
-        if (status != GL_TRUE) {
-            print_shader_info_log(shader);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    auto attach_shader(const program_t& program, const shader_t& shader) noexcept {
-        glAttachShader(program.value(), shader.value());
-    }
-
-    auto link_program(const program_t& program) noexcept {
-        glLinkProgram(program.value());
-
-        GLint status;
-        glGetProgramiv(program.value(), GL_LINK_STATUS, &status);
-
-        if (status != GL_TRUE) {
-            print_program_info_log(program);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    auto use_program(const program_t& program) noexcept {
-        glUseProgram(program.value());
-    }
-
-    auto unbind_program() noexcept {
-        glUseProgram(0);
-    }
-
-    auto get_uniform_location(const program_t& program, const char* name) noexcept {
-        auto uniform = glGetUniformLocation(program.value(), name);
-
-        if (uniform == -1) {
-            std::cerr << "Failed to get uniform location " << name << std::endl;
-            //exit(EXIT_FAILURE);
-        }
-
-        return uniform_location_t(uniform);
-    }
-
-    auto clear_color(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) noexcept {
-        glClearColor(red, green, blue, alpha);
-    }
-
-    auto clear(GLbitfield mask) noexcept {
-        glClear(mask);
-    }
-
-    template<typename TContainer, GLenum Target, GLenum Usage = GL_STATIC_DRAW, typename TValue = typename TContainer::value_type>
-    auto generate_buffer_object(const TContainer& data) noexcept {
-        GLuint buffer_object;
-        glGenBuffers(1, &buffer_object);
-        glBindBuffer(Target, buffer_object);
-        glBufferData(Target, data.size() * sizeof(TValue), data.data(), Usage);
-    }
-
-    auto generate_vertex_array_object() noexcept {
-        GLuint vertex_array_object;
-        glGenVertexArrays(1, &vertex_array_object);
-        glBindVertexArray(vertex_array_object);
-
-        return vertex_array_object_t(vertex_array_object, [](GLuint vertex_array_object) {glDeleteVertexArrays(1, &vertex_array_object); });
-    }
-
-    template<typename TContainer, typename TValue = typename TContainer::value_type>
-    auto generate_texture_coordinate_buffer_object(const TContainer& texture_coordinate_data) noexcept {
-        GLuint texture_coordinate_buffer_object;
-        glGenBuffers(1, &texture_coordinate_buffer_object);
-        glBindBuffer(GL_ARRAY_BUFFER, texture_coordinate_buffer_object);
-        glBufferData(GL_ARRAY_BUFFER, texture_coordinate_data.size() * sizeof(TValue), texture_coordinate_data.data(), GL_STATIC_DRAW);
-
-        return texture_coordinate_buffer_object_t(std::move(texture_coordinate_buffer_object), [](GLuint texture_coordinate_buffer) {glDeleteBuffers(1, &texture_coordinate_buffer); });
-    }
-
-    auto vertex_attrib_pointer(const attribute_location_t& attribute) noexcept {
-        glVertexAttribPointer(attribute.attribute_location(), 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
-    }
-
-    auto uniform_matrix(const uniform_location_t& uniform, const glm::mat4& matrix) noexcept {
-        glUniformMatrix4fv(uniform.uniform_location(), 1, GL_FALSE, glm::value_ptr(matrix));
-    }
-
-    auto draw_elements(GLenum mode, GLsizei count, GLenum type) noexcept {
-        glDrawElements(mode, count, type, nullptr);
-    }
+    void draw_elements(GLenum mode, GLsizei count, GLenum type) noexcept;
 }
 
 #endif //OPENGL_HPP

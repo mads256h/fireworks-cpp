@@ -34,8 +34,8 @@ constexpr std::array<GLuint, 4> vertex_indices = {0, 1, 2, 3};
 
 struct shader_stuff {
     gl::program_t program;
-    gl::shader_t vertex_shader;
-    gl::shader_t fragment_shader;
+    gl::vertex_shader_t vertex_shader;
+    gl::fragment_shader_t fragment_shader;
     gl::uniform_location_t projection_uniform;
     gl::vertex_array_object_t vertex_array_object;
     gl::vertex_buffer_object_t vertex_buffer_object;
@@ -101,7 +101,7 @@ int main() {
                             }
                             else {
                                 glm::vec2 end_position{x, y};
-                                lines.push_back({first_point, end_position, glm::vec3(1.0f), 50.0f, 50.0f});
+                                lines.emplace_back(first_point, end_position, glm::vec3(1.0f), 50.0f, 20.0f);
                                 got_first_point = false;
                             }
                             std::cout << "button pressed at (" << x << ", " << y << ")" << std::endl;
@@ -142,22 +142,21 @@ int main() {
     gl::debug_message_callback(debug_message_callback, nullptr);
 
     gl::enable(GL_BLEND);
+    gl::enable(GL_MULTISAMPLE);
+    gl::disable(GL_CULL_FACE);
+    gl::disable(GL_DEPTH_TEST);
+    gl::disable(GL_SCISSOR_TEST);
+    gl::disable(GL_STENCIL_TEST);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     auto program = gl::create_program();
 
     // Vertex shader
-    auto vertex_shader = gl::create_shader(GL_VERTEX_SHADER);
-    gl::shader_source(vertex_shader, resources::vertex_shader_vsh.data());
-    gl::compile_shader(vertex_shader);
-    gl::attach_shader(program, vertex_shader);
+    auto vertex_shader = gl::vertex_shader_t::create_shader(program, resources::vertex_shader_vsh);
 
     // Fragment shader
-    auto fragment_shader = gl::create_shader(GL_FRAGMENT_SHADER);
-    gl::shader_source(fragment_shader, resources::fragment_shader_fsh.data());
-    gl::compile_shader(fragment_shader);
-    gl::attach_shader(program, fragment_shader);
+    auto fragment_shader = gl::fragment_shader_t::create_shader(program, resources::fragment_shader_fsh);
 
     gl::link_program(program);
 
@@ -190,7 +189,97 @@ int main() {
 }
 
 void debug_message_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void *) {
-    std::cerr << "GL CALLBACK: " << (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **"sv : ""sv) << std::hex << " type = 0x" << type << ", severity = 0x" << severity << ", message = " << message << std::endl << std::dec;
+    const char* _source;
+    const char* _type;
+    const char* _severity;
+
+    switch (source) {
+        case GL_DEBUG_SOURCE_API:
+        _source = "API";
+        break;
+
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        _source = "WINDOW SYSTEM";
+        break;
+
+        case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        _source = "SHADER COMPILER";
+        break;
+
+        case GL_DEBUG_SOURCE_THIRD_PARTY:
+        _source = "THIRD PARTY";
+        break;
+
+        case GL_DEBUG_SOURCE_APPLICATION:
+        _source = "APPLICATION";
+        break;
+
+        case GL_DEBUG_SOURCE_OTHER:
+        _source = "UNKNOWN";
+        break;
+
+        default:
+        _source = "UNKNOWN";
+        break;
+    }
+
+    switch (type) {
+        case GL_DEBUG_TYPE_ERROR:
+        _type = "ERROR";
+        break;
+
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        _type = "DEPRECATED BEHAVIOR";
+        break;
+
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        _type = "UNDEFINED BEHAVIOR";
+        break;
+
+        case GL_DEBUG_TYPE_PORTABILITY:
+        _type = "PORTABILITY";
+        break;
+
+        case GL_DEBUG_TYPE_PERFORMANCE:
+        _type = "PERFORMANCE";
+        break;
+
+        case GL_DEBUG_TYPE_OTHER:
+        _type = "OTHER";
+        break;
+
+        case GL_DEBUG_TYPE_MARKER:
+        _type = "MARKER";
+        break;
+
+        default:
+        _type = "UNKNOWN";
+        break;
+    }
+
+    switch (severity) {
+        case GL_DEBUG_SEVERITY_HIGH:
+        _severity = "HIGH";
+        break;
+
+        case GL_DEBUG_SEVERITY_MEDIUM:
+        _severity = "MEDIUM";
+        break;
+
+        case GL_DEBUG_SEVERITY_LOW:
+        _severity = "LOW";
+        break;
+
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+        _severity = "NOTIFICATION";
+        break;
+
+        default:
+        _severity = "UNKNOWN";
+        break;
+    }
+
+    std::cerr << "GL CALLBACK: source = " << _source << ", type = " << _type  << ", severity = " << _severity << ", message = " << message << std::endl;
 }
 
 void render(const shader_stuff& stuff, const glm::mat4& projection_matrix, float delta_time, const std::vector<line>& lines) {
