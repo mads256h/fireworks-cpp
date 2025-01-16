@@ -51,7 +51,7 @@ void render(const shader_stuff& stuff,
 
 void GLAPIENTRY debug_message_callback(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void*);
 
-int main() {
+extern "C" int main() {
     sdl::init_sub_system(SDL_INIT_TIMER);
     sdl::init_sub_system(SDL_INIT_VIDEO);
     sdl::init_sub_system(SDL_INIT_EVENTS); {
