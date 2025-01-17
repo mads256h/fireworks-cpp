@@ -4,6 +4,35 @@
 
 #include "sdl.hpp"
 
+#include <SDL2/SDL_messagebox.h>
+
+#include <string>
+#include <sstream>
+#include <iostream>
+
+#if !defined(__PRETTY_FUNCTION__) && !defined(__GNUC__)
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
+
+#define SDL_QUIT_WITH_ERROR() \
+    do { \
+        auto error = SDL_GetError(); \
+        std::stringstream error_message_stream; \
+        error_message_stream << "Fatal error in " << __PRETTY_FUNCTION__ << ": " << error << "\nExiting..."; \
+        std::string error_message = error_message_stream.str(); \
+        std::cerr << error_message << "\n"; \
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", error_message.c_str(), NULL); \
+        exit(1); \
+    } while (false)
+
+#define SDL_QUIT_IF_ERROR(result) \
+    do { \
+        if ((result) != 0) { \
+            SDL_QUIT_WITH_ERROR(); \
+        } \
+    } while (false)
+
+
 void sdl::init_sub_system(Uint32 flags) noexcept {
     auto result = SDL_InitSubSystem(flags);
     SDL_QUIT_IF_ERROR(result);

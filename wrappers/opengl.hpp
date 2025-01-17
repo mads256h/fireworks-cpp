@@ -90,17 +90,11 @@ public:
         glBufferData(Target, data.size() * sizeof(TValue), data.data(), Usage);
     }
 
-    template<GLenum ETarget = Target, typename = std::enable_if_t<ETarget != GL_ELEMENT_ARRAY_BUFFER> >
+    template<GLenum ETarget = Target, typename = std::enable_if_t<ETarget != GL_ELEMENT_ARRAY_BUFFER>, int Iterations =
+            std::is_same_v<TValue, glm::mat4> ? 4 : 1>
     void upload() const noexcept {
-        auto iterations = 1;
-
-        // mat4 use 4 locations
-        if constexpr (std::is_same_v<TValue, glm::mat4>) {
-            iterations = 4;
-        }
-
         // Set location data
-        for (auto i = 0; i < iterations; i++) {
+        for (auto i = 0; i < Iterations; i++) {
             const auto location = m_attribute_location.attribute_location() + i;
             glEnableVertexAttribArray(location);
             glVertexAttribPointer(location, Size, Type, GL_FALSE, sizeof(TValue),

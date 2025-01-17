@@ -5,6 +5,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_opengl3.h>
+
 #include "wrappers/sdl.hpp"
 #include "wrappers/glew.hpp"
 #include "wrappers/opengl.hpp"
@@ -60,6 +64,10 @@ extern "C" int main(int, char**) {
         bool got_first_point = false;
         glm::vec2 first_point = glm::vec2{0.0f};
 
+        auto last_fps_update = 1.0f;
+        auto frames_this_update = 0;
+        std::string fps;
+
         const auto performance_frequency = static_cast<double>(sdl::get_performance_frequency());
         auto delta_time = 0.016f; // 1 frame at 60 fps initially.
         auto last_time = static_cast<float>(static_cast<double>(sdl::get_performance_counter()) /
@@ -71,14 +79,30 @@ extern "C" int main(int, char**) {
         sdl::gl_set_attribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
         sdl::gl_set_attribute(SDL_GL_MULTISAMPLESAMPLES, 8);
 
-        auto window = sdl::create_window("Hello World!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 200, 200,
-                                         SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+        // Needed by IMGUI
+        sdl::gl_set_attribute(SDL_GL_DOUBLEBUFFER, 1);
+        sdl::gl_set_attribute(SDL_GL_DEPTH_SIZE, 24);
+        sdl::gl_set_attribute(SDL_GL_STENCIL_SIZE, 8);
+
+        auto window = sdl::create_window("Hello World!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720,
+                                         SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
+                                         SDL_WINDOW_ALLOW_HIGHDPI);
 
         auto gl_context = sdl::gl_create_context(window);
         glew::init();
 
         // Use vsync
         sdl::gl_try_use_vsync();
+
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
+        ImGui::StyleColorsDark();
+
+        ImGui_ImplSDL2_InitForOpenGL(window.get(), gl_context.value());
+        ImGui_ImplOpenGL3_Init("#version 130");
 
         auto stuff = init_gl();
 
@@ -87,6 +111,9 @@ extern "C" int main(int, char**) {
         while (!quit) {
             for (auto pool_event_result = sdl::pool_event(); pool_event_result.pending_event;
                  pool_event_result = sdl::pool_event()) {
+                auto process_event_thing = ImGui_ImplSDL2_ProcessEvent(&pool_event_result.event);
+                std::cerr << process_event_thing << std::endl;
+
                 switch (pool_event_result.event.type) {
                     case SDL_QUIT:
                         std::cout << "Quitting..." << std::endl;
@@ -124,7 +151,29 @@ extern "C" int main(int, char**) {
                 }
             }
 
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplSDL2_NewFrame();
+            ImGui::NewFrame();
+
+            if (last_fps_update >= 1.0f) {
+                auto frames = static_cast<float>(frames_this_update) / last_fps_update;
+                fps = std::format("{:.0f} fps", frames);
+                last_fps_update = 0.0f;
+                frames_this_update = 0;
+            }
+
+            last_fps_update += delta_time;
+            frames_this_update++;
+
+            ImGui::GetForegroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0.0f, 0.0f),
+                                                    ImColor(1.0f, 1.0f, 1.0f), fps.c_str(), nullptr, 0.0f, nullptr);
+
+            ImGui::ShowDemoWindow();
+
             render(stuff, projection_matrix, delta_time, lines);
+
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             auto now = static_cast<float>(static_cast<double>(sdl::get_performance_counter()) / performance_frequency);
             delta_time = now - last_time;
@@ -132,7 +181,12 @@ extern "C" int main(int, char**) {
 
             sdl::gl_swap_window(window);
         }
+
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplSDL2_Shutdown();
+        ImGui::DestroyContext();
     }
+
 
     sdl::quit();
 
@@ -140,15 +194,13 @@ extern "C" int main(int, char**) {
 }
 
 shader_stuff init_gl() {
+#ifndef NDEBUG
     gl::enable(GL_DEBUG_OUTPUT);
     gl::debug_message_callback(debug_message_callback, nullptr);
+#endif
 
     gl::enable(GL_BLEND);
     gl::enable(GL_MULTISAMPLE);
-    gl::disable(GL_CULL_FACE);
-    gl::disable(GL_DEPTH_TEST);
-    gl::disable(GL_SCISSOR_TEST);
-    gl::disable(GL_STENCIL_TEST);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -223,7 +275,7 @@ void debug_message_callback(GLenum source,
             break;
 
         case GL_DEBUG_SOURCE_OTHER:
-            _source = "UNKNOWN";
+            _source = "OTHER";
             break;
 
         default:
@@ -307,7 +359,7 @@ void render(const shader_stuff& stuff,
 
     std::vector<glm::vec2> vertex_widths;
     for (auto& line : lines) {
-        vertex_widths.push_back({line.start_width(), line.end_width()});
+        vertex_widths.emplace_back(line.start_width(), line.end_width());
     }
 
     gl::clear(GL_COLOR_BUFFER_BIT);
