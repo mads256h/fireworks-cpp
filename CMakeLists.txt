@@ -15,28 +15,30 @@ else ()
     add_compile_options(-Wno-ignored-attributes)
 endif ()
 
-function(create_resources dir output)
-    # Create empty output file
-    file(WRITE ${output} "#include <string_view>\nusing namespace std::string_view_literals;\nnamespace resources {\n")
-    # Collect input files
-    file(GLOB bins ${dir}/*)
-    # Iterate through input files
-    foreach (bin ${bins})
-        # Get short filename
-        string(REGEX MATCH "([^/]+)$" filename ${bin})
-        # Replace filename spaces & extension separator for C compatibility
-        string(REGEX REPLACE "\\.| |-" "_" filename ${filename})
-        # Read hex data from file
-        file(READ ${bin} filedata)
-        # Convert hex data for C compatibility
-        string(REGEX REPLACE "\"" "\\\\\"," filedata "${filedata}")
-        string(REGEX REPLACE "\r" "\\\\r" filedata "${filedata}")
-        string(REGEX REPLACE "\n" "\\\\n" filedata "${filedata}")
-        # Append data to output file
-        file(APPEND ${output} "constexpr auto ${filename} = \"${filedata}\"sv;\n")
-    endforeach ()
-    file(APPEND ${output} "}")
-endfunction()
+include(cmake/sanitizers.cmake)
+include(cmake/include-what-you-use.cmake)
+
+add_executable(resource_embedder tools/resource_embedder.cpp)
+
+set(RESOURCE_DIRECTORY "${CMAKE_SOURCE_DIR}/embed")
+file(GLOB RESOURCE_FILES "${RESOURCE_DIRECTORY}/*")
+
+set(GENERATED_RESOURCE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/generated)
+set(GENERATED_RESOURCE_HPP_FILE ${GENERATED_RESOURCE_DIRECTORY}/resources.hpp)
+set(GENERATED_RESOURCE_CPP_FILE ${GENERATED_RESOURCE_DIRECTORY}/resources.cpp)
+
+file(MAKE_DIRECTORY "${GENERATED_RESOURCE_DIRECTORY}")
+
+add_custom_command(
+    OUTPUT ${GENERATED_RESOURCE_HPP_FILE} ${GENERATED_RESOURCE_CPP_FILE}
+    COMMAND resource_embedder
+    ARGS ${GENERATED_RESOURCE_HPP_FILE} ${GENERATED_RESOURCE_CPP_FILE} ${RESOURCE_FILES}
+    DEPENDS ${RESOURCE_FILES}
+    COMMENT "Generating ${GENERATED_RESOURCE_FILE}."
+    VERBATIM
+)
+
+add_custom_target(embed_resources ALL DEPENDS ${GENERATED_RESOURCE_HPP_FILE} ${GENERATED_RESOURCE_CPP_FILE})
 
 find_package(SDL2 REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -49,22 +51,19 @@ if (NOT DEFINED IMGUI_LIBRARIES AND NOT DEFINED IMGUI_INCLUDE_DIRS)
 endif ()
 
 
-include(cmake/sanitizers.cmake)
-include(cmake/include-what-you-use.cmake)
 
 add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
 
-include_directories(fireworks_cpp ${SDL2_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS} ${GLM_INCLUDE_DIRS}, ${IMGUI_INCLUDE_DIRS})
-
-
-create_resources(embed "generated/resources.hpp")
+include_directories(fireworks_cpp ${GENERATED_RESOURCE_DIRECTORY} ${SDL2_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS} ${GLM_INCLUDE_DIRS} ${IMGUI_INCLUDE_DIRS})
 
 add_executable(fireworks_cpp main.cpp
         primitives.cpp
         wrappers/opengl/shader.cpp
         wrappers/opengl.cpp
         wrappers/sdl.cpp
-        wrappers/glew.cpp)
+        wrappers/glew.cpp
+        ${GENERATED_RESOURCE_CPP_FILE})
 target_link_libraries(fireworks_cpp ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${GLM_LIBRARIES} ${IMGUI_LIBRARIES})
+add_dependencies(fireworks_cpp embed_resources)
 
 try_enable_include_what_you_use(fireworks_cpp mapping_file.imp)

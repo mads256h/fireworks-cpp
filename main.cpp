@@ -15,7 +15,7 @@
 
 #include "primitives.hpp"
 
-#include "generated/resources.hpp"
+#include "resources.hpp"
 
 #include <cstdlib>
 #include <array>
