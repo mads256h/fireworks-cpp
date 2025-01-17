@@ -57,7 +57,7 @@ jobs:
     - name: Install dependencies
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get install libsdl2-dev libglew-dev libglm-dev libimgui-dev
+        sudo apt-get install libsdl2-dev libglew-dev libglm-dev libimgui-dev imgui
 
     - name: run-vcpkg
       if: runner.os == 'Windows'
