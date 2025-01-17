@@ -4,11 +4,12 @@
 
 #include "sdl.hpp"
 
-#include <SDL2/SDL_messagebox.h>
+#include <SDL2/SDL_messagebox.h> // IWYU pragma: keep
 
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <cstdlib>
 
 #if !defined(__PRETTY_FUNCTION__) && !defined(__GNUC__)
 #define __PRETTY_FUNCTION__ __FUNCSIG__
@@ -22,7 +23,7 @@
         std::string error_message = error_message_stream.str(); \
         std::cerr << error_message << "\n"; \
         SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", error_message.c_str(), NULL); \
-        exit(1); \
+        std::exit(1); \
     } while (false)
 
 #define SDL_QUIT_IF_ERROR(result) \

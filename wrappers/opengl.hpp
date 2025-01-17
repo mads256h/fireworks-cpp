@@ -7,12 +7,7 @@
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/string_cast.hpp>
 
-#include <string_view>
-#include <vector>
-#include <array>
 #include <type_traits>
 #include <iostream>
 

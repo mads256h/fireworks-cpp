@@ -2,15 +2,13 @@
 // Created by mads on 15-01-25.
 //
 
-#include <cmath>
-
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp> // IWYU pragma: keep
 
 #include "primitives.hpp"
 
-#include <iostream>
 #include <numbers>
-#include <ostream>
+#include <cmath>
 
 glm::mat4 make_model_matrix(const glm::vec2& position, const float rotations_radians, const glm::vec2& scale) noexcept {
     auto model_matrix = glm::identity<glm::mat4>();

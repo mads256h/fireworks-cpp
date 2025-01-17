@@ -50,6 +50,7 @@ endif ()
 
 
 include(cmake/sanitizers.cmake)
+include(cmake/include-what-you-use.cmake)
 
 add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
 
@@ -66,3 +67,4 @@ add_executable(fireworks_cpp main.cpp
         wrappers/glew.cpp)
 target_link_libraries(fireworks_cpp ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${GLM_LIBRARIES} ${IMGUI_LIBRARIES})
 
+try_enable_include_what_you_use(fireworks_cpp mapping_file.imp)

@@ -4,12 +4,18 @@
 
 #include "opengl.hpp"
 
+#include <glm/gtc/type_ptr.hpp>
+
+#include <cstdio>
+#include <cstdlib>
+#include <vector>
+
 gl::attribute_location_t gl::get_attribute_location(const program_t& program, const char* name) noexcept {
     auto attribute = glGetAttribLocation(program.value(), name);
 
     if (attribute == -1) {
         std::cerr << "Failed to get attribute location " << name << std::endl;
-        //exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 
     return attribute_location_t(attribute);
@@ -39,8 +45,8 @@ gl::program_t gl::create_program() noexcept {
     auto program = glCreateProgram();
     if (program == 0) {
         // TODO: FIX
-        fprintf(stderr, "Failed to create OpenGL program\n");
-        exit(EXIT_FAILURE);
+        std::fprintf(stderr, "Failed to create OpenGL program\n");
+        std::exit(EXIT_FAILURE);
     }
 
     return {program, [](auto program) { glDeleteProgram(program); }};
@@ -65,7 +71,7 @@ void gl::link_program(const program_t& program) noexcept {
 
     if (status != GL_TRUE) {
         print_program_info_log(program);
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 }
 
@@ -82,7 +88,7 @@ gl::uniform_location_t gl::get_uniform_location(const program_t& program, const 
 
     if (uniform == -1) {
         std::cerr << "Failed to get uniform location " << name << std::endl;
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 
     return uniform_location_t(uniform);

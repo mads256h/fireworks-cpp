@@ -4,8 +4,7 @@
 
 #include "shader.hpp"
 
-#include "../opengl.hpp"
-
+#include <vector>
 #include <cstdio>
 #include <cstdlib>
 

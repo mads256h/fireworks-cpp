@@ -1,6 +1,4 @@
-//
-// Created by mads on 16-01-25.
-//
+// IWYU pragma: private, include "wrappers/opengl.hpp"
 
 #ifndef SHADER_HPP
 #define SHADER_HPP

@@ -4,8 +4,12 @@
 
 #include "glew.hpp"
 
+#include <GL/glew.h>
+
 #include <sstream>
 #include <iostream>
+#include <string>
+#include <cstdlib>
 
 #if !defined(__PRETTY_FUNCTION__) && !defined(__GNUC__)
 #define __PRETTY_FUNCTION__ __FUNCSIG__
@@ -18,7 +22,7 @@
         error_message_stream << "Fatal error in " << __PRETTY_FUNCTION__ << ": " << error << "\nExiting..."; \
         std::string error_message = error_message_stream.str(); \
         std::cerr << error_message << "\n"; \
-        exit(1); \
+        std::exit(1); \
     } while (false)
 
 #define GLEW_QUIT_IF_ERROR(result) \

@@ -1,9 +1,9 @@
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_main.h>
+
+#include <GL/glew.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp> // IWYU pragma: keep
 
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
@@ -18,9 +18,13 @@
 #include "generated/resources.hpp"
 
 #include <cstdlib>
+#include <array>
 #include <iostream>
+#include <string>
 #include <string_view>
 #include <format>
+#include <vector>
+#include <utility>
 
 using namespace std::string_view_literals;
 
