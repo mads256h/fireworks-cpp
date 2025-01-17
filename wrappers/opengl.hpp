@@ -195,6 +195,12 @@ void vertex_attrib_pointer(const attribute_location_t& attribute) noexcept;
 
 void uniform_matrix(const uniform_location_t& uniform, const glm::mat4& matrix) noexcept;
 
+void uniform_vec3(const uniform_location_t& uniform, const glm::vec3& vector) noexcept;
+
+void uniform_float(const uniform_location_t& uniform, float value) noexcept;
+
+void draw_arrays(GLenum mode, GLint first, GLsizei count) noexcept;
+
 void draw_elements(GLenum mode, GLsizei count, GLenum type) noexcept;
 }
 

@@ -25,6 +25,9 @@
 #include <format>
 #include <vector>
 #include <utility>
+#include <glm/glm.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 using namespace std::string_view_literals;
 
@@ -37,7 +40,19 @@ constexpr std::array<glm::vec2, 4> vertex_uvs = {glm::vec2{0.0f, 0.0f}, {1.0f, 0
 
 constexpr std::array<GLuint, 4> vertex_indices = {0, 1, 2, 3};
 
-struct shader_stuff {
+struct star_shader_stuff_t {
+    gl::program_t program;
+    gl::vertex_shader_t vertex_shader;
+    gl::fragment_shader_t fragment_shader;
+    gl::vertex_array_object_t vertex_array_object;
+    gl::vertex_buffer_object_t vertex_buffer_object;
+    gl::index_buffer_object_t index_buffer_object;
+    gl::uniform_location_t projection_uniform;
+    gl::uniform_location_t background_color_uniform;
+    gl::uniform_location_t star_density_uniform;
+};
+
+struct line_shader_stuff_t {
     gl::program_t program;
     gl::vertex_shader_t vertex_shader;
     gl::fragment_shader_t fragment_shader;
@@ -51,14 +66,40 @@ struct shader_stuff {
     gl::vertex_width_buffer_object_t vertex_width_buffer_object;
 };
 
-shader_stuff init_gl();
+struct shader_stuff_t {
+    star_shader_stuff_t star_shader_stuff;
+    line_shader_stuff_t line_shader_stuff;
+};
 
-void render(const shader_stuff& stuff,
+struct window_state_t {
+    bool m_show_fps = true;
+    glm::vec3 m_background_color = glm::vec3(0.0f);
+    float m_star_density = 0.98f;
+};
+
+shader_stuff_t init_gl();
+
+void render(const shader_stuff_t& stuff,
             const glm::mat4& projection_matrix,
-            float delta_time,
-            const std::vector<line>& lines);
+            const window_state_t& window_state,
+            const std::vector<line>& lines,
+            const glm::vec2& window_size);
 
 void GLAPIENTRY debug_message_callback(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void*);
+
+window_state_t& render_debug_menu(bool render_imgui) {
+    static window_state_t state;
+
+    if (render_imgui) {
+        ImGui::Begin("Debug menu");
+        ImGui::Checkbox("Show FPS", &state.m_show_fps);
+        ImGui::ColorPicker3("Background Color", glm::value_ptr(state.m_background_color));
+        ImGui::DragFloat("Star Density", &state.m_star_density, 0.001f, 0.0f, 1.0f);
+        ImGui::End();
+    }
+
+    return state;
+}
 
 extern "C" int main(int, char**) {
     sdl::init_sub_system(SDL_INIT_TIMER);
@@ -72,6 +113,8 @@ extern "C" int main(int, char**) {
         auto last_fps_update = 1.0f;
         auto frames_this_update = 0;
         std::string fps;
+
+        auto render_imgui = true;
 
         const auto performance_frequency = static_cast<double>(sdl::get_performance_frequency());
         auto delta_time = 0.016f; // 1 frame at 60 fps initially.
@@ -102,6 +145,7 @@ extern "C" int main(int, char**) {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
+        io.IniFilename = nullptr;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
         ImGui::StyleColorsDark();
@@ -113,11 +157,12 @@ extern "C" int main(int, char**) {
 
         auto projection_matrix = glm::identity<glm::mat4>();
 
+        glm::vec2 window_size{1280, 720};
+
         while (!quit) {
             for (auto pool_event_result = sdl::pool_event(); pool_event_result.pending_event;
                  pool_event_result = sdl::pool_event()) {
-                auto process_event_thing = ImGui_ImplSDL2_ProcessEvent(&pool_event_result.event);
-                std::cerr << process_event_thing << std::endl;
+                ImGui_ImplSDL2_ProcessEvent(&pool_event_result.event);
 
                 switch (pool_event_result.event.type) {
                     case SDL_QUIT:
@@ -126,7 +171,8 @@ extern "C" int main(int, char**) {
                         break;
 
                     case SDL_MOUSEBUTTONDOWN:
-                        if (pool_event_result.event.button.button == SDL_BUTTON_LEFT) {
+                        if (pool_event_result.event.button.button == SDL_BUTTON_LEFT && !ImGui::IsWindowHovered(
+                                    ImGuiHoveredFlags_AnyWindow)) {
                             auto x = pool_event_result.event.button.x;
                             auto y = pool_event_result.event.button.y;
                             if (!got_first_point) {
@@ -151,14 +197,23 @@ extern "C" int main(int, char**) {
                             projection_matrix = glm::ortho(0.0f, static_cast<float>(x), static_cast<float>(y), 0.0f,
                                                            -1.0f, 1.0f);
                             glViewport(0, 0, x, y);
+                            window_size = {x, y};
+                        }
+                        break;
+
+                    case SDL_KEYDOWN:
+                        if (pool_event_result.event.key.keysym.scancode == SDL_SCANCODE_F9) {
+                            render_imgui = !render_imgui;
                         }
                         break;
                 }
             }
 
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplSDL2_NewFrame();
-            ImGui::NewFrame();
+            if (render_imgui) {
+                ImGui_ImplOpenGL3_NewFrame();
+                ImGui_ImplSDL2_NewFrame();
+                ImGui::NewFrame();
+            }
 
             if (last_fps_update >= 1.0f) {
                 auto frames = static_cast<float>(frames_this_update) / last_fps_update;
@@ -170,15 +225,21 @@ extern "C" int main(int, char**) {
             last_fps_update += delta_time;
             frames_this_update++;
 
-            ImGui::GetForegroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0.0f, 0.0f),
-                                                    ImColor(1.0f, 1.0f, 1.0f), fps.c_str(), nullptr, 0.0f, nullptr);
+            auto window_state = render_debug_menu(render_imgui);
 
-            ImGui::ShowDemoWindow();
+            if (window_state.m_show_fps && render_imgui) {
+                ImGui::GetForegroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0.0f, 0.0f),
+                                                        ImColor(1.0f, 1.0f, 1.0f), fps.c_str(), nullptr, 0.0f, nullptr);
+            }
 
-            render(stuff, projection_matrix, delta_time, lines);
+            //ImGui::ShowDemoWindow();
 
-            ImGui::Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            render(stuff, projection_matrix, window_state, lines, window_size);
+
+            if (render_imgui) {
+                ImGui::Render();
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            }
 
             auto now = static_cast<float>(static_cast<double>(sdl::get_performance_counter()) / performance_frequency);
             delta_time = now - last_time;
@@ -198,17 +259,35 @@ extern "C" int main(int, char**) {
     return EXIT_SUCCESS;
 }
 
-shader_stuff init_gl() {
-#ifndef NDEBUG
-    gl::enable(GL_DEBUG_OUTPUT);
-    gl::debug_message_callback(debug_message_callback, nullptr);
-#endif
+star_shader_stuff_t create_star_shader() {
+    auto program = gl::create_program();
 
-    gl::enable(GL_BLEND);
-    gl::enable(GL_MULTISAMPLE);
+    auto vertex_shader = gl::vertex_shader_t::create_shader(program, resources::star_vertex_shader_vsh);
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    auto fragment_shader = gl::fragment_shader_t::create_shader(program, resources::star_fragment_shader_fsh);
 
+    gl::link_program(program);
+
+    auto projection_uniform = gl::get_uniform_location(program, "projection_matrix");
+    auto background_color_uniform = gl::get_uniform_location(program, "background_color");
+    auto star_density_uniform = gl::get_uniform_location(program, "star_density");
+
+    auto vertex_array_object = gl::generate_vertex_array_object();
+    auto vertex_buffer_object = gl::vertex_buffer_object_t::create_buffer_object(program, "vertex_position");
+    auto index_buffer_object = gl::index_buffer_object_t::create_buffer_object(vertex_indices);
+
+    return {std::move(program),
+            std::move(vertex_shader),
+            std::move(fragment_shader),
+            std::move(vertex_array_object),
+            std::move(vertex_buffer_object),
+            std::move(index_buffer_object),
+            projection_uniform,
+            background_color_uniform,
+            star_density_uniform};
+}
+
+line_shader_stuff_t create_line_shader() {
     auto program = gl::create_program();
 
     // Vertex shader
@@ -221,8 +300,6 @@ shader_stuff init_gl() {
 
     const auto projection_uniform = gl::get_uniform_location(program, "projection_matrix");
 
-    // Set clear color to magenta
-    gl::clear_color(1.0f, 0.0f, 1.0f, 1.0f);
 
     auto vertex_array_object = gl::generate_vertex_array_object();
     auto vertex_buffer_object = gl::vertex_buffer_object_t::create_buffer_object(
@@ -245,6 +322,27 @@ shader_stuff init_gl() {
             std::move(model_matrix_buffer_object),
             std::move(model_color_buffer_object),
             std::move(vertex_width_buffer_object)};
+}
+
+shader_stuff_t init_gl() {
+#ifndef NDEBUG
+    gl::enable(GL_DEBUG_OUTPUT);
+    gl::debug_message_callback(debug_message_callback, nullptr);
+#endif
+
+    gl::enable(GL_BLEND);
+    gl::enable(GL_MULTISAMPLE);
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Set clear color to magenta
+    gl::clear_color(1.0f, 0.0f, 1.0f, 1.0f);
+
+    auto star_shader_stuff = create_star_shader();
+    auto line_shader_stuff = create_line_shader();
+
+
+    return {std::move(star_shader_stuff), std::move(line_shader_stuff)};
 }
 
 void debug_message_callback(GLenum source,
@@ -348,10 +446,62 @@ void debug_message_callback(GLenum source,
             ", message = " << message << std::endl;
 }
 
-void render(const shader_stuff& stuff,
-            const glm::mat4& projection_matrix,
-            float delta_time,
-            const std::vector<line>& lines) {
+
+template<typename T, typename F>
+void set_uniform_if_changed(T& old_value,
+                            const T& new_value,
+                            gl::uniform_location_t uniform_location,
+                            F uniform_setter) {
+    if (old_value == new_value) {
+        return;
+    }
+
+    uniform_setter(uniform_location, new_value);
+    old_value = new_value;
+}
+
+void render_stars(const star_shader_stuff_t& stuff,
+                  const window_state_t& window_state,
+                  const glm::mat4& projection_matrix,
+                  glm::vec2 window_size) {
+    static glm::mat4 old_projection_matrix = glm::identity<glm::mat4>();
+    static glm::vec2 old_window_size = {0.0f, 0.0f};
+    static glm::vec3 old_background_color = {0.0f, 0.0f, 0.0f};
+    static float old_star_density = 0.0f;
+
+    gl::use_program(stuff.program);
+
+
+    set_uniform_if_changed(old_projection_matrix, projection_matrix, stuff.projection_uniform, gl::uniform_matrix);
+    set_uniform_if_changed(old_background_color, window_state.m_background_color, stuff.background_color_uniform,
+                           gl::uniform_vec3);
+    set_uniform_if_changed(old_star_density, window_state.m_star_density, stuff.star_density_uniform,
+                           gl::uniform_float);
+
+    if (old_window_size != window_size) {
+        const std::array<glm::vec2, 4> vertex_positions = {glm::vec2{0.0f, 0.0f},
+                                                           {window_size.x, 0.0f},
+                                                           {window_size.x, window_size.y},
+                                                           {0.0f, window_size.y}};
+
+        stuff.vertex_buffer_object.set_data(vertex_positions);
+        old_window_size = window_size;
+    } else {
+        stuff.vertex_buffer_object.bind();
+    }
+    stuff.vertex_buffer_object.upload();
+
+    stuff.index_buffer_object.bind();
+    gl::draw_arrays(GL_TRIANGLE_FAN, 1, 4);
+
+    gl::unbind_program();
+}
+
+void render_lines(const line_shader_stuff_t& stuff,
+                  const glm::mat4& projection_matrix,
+                  const std::vector<line>& lines) {
+    static glm::mat4 old_projection_matrix = glm::identity<glm::mat4>();
+
     std::vector<glm::mat4> model_matrixes;
     for (auto& line : lines) {
         model_matrixes.push_back(line.transform_matrix());
@@ -367,10 +517,8 @@ void render(const shader_stuff& stuff,
         vertex_widths.emplace_back(line.start_width(), line.end_width());
     }
 
-    gl::clear(GL_COLOR_BUFFER_BIT);
 
     gl::use_program(stuff.program);
-
 
     stuff.vertex_buffer_object.bind();
     stuff.vertex_buffer_object.upload();
@@ -387,12 +535,24 @@ void render(const shader_stuff& stuff,
     stuff.vertex_width_buffer_object.set_data(vertex_widths);
     stuff.vertex_width_buffer_object.upload();
 
-    gl::uniform_matrix(stuff.projection_uniform, projection_matrix);
+    set_uniform_if_changed(old_projection_matrix, projection_matrix, stuff.projection_uniform, gl::uniform_matrix);
 
     stuff.index_buffer_object.bind();
-    //glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, vertex_indices.size(), lines.size());
 
     gl::unbind_program();
 }
+
+void render(const shader_stuff_t& stuff,
+            const glm::mat4& projection_matrix,
+            const window_state_t& window_state,
+            const std::vector<line>& lines,
+            const glm::vec2& window_size) {
+    gl::clear(GL_COLOR_BUFFER_BIT);
+    gl::enable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    render_stars(stuff.star_shader_stuff, window_state, projection_matrix, window_size);
+    render_lines(stuff.line_shader_stuff, projection_matrix, lines);
+}
+
 

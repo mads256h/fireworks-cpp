@@ -118,6 +118,18 @@ void gl::uniform_matrix(const uniform_location_t& uniform, const glm::mat4& matr
     glUniformMatrix4fv(uniform.uniform_location(), 1, GL_FALSE, glm::value_ptr(matrix));
 }
 
+void gl::uniform_vec3(const uniform_location_t& uniform, const glm::vec3& vector) noexcept {
+    glUniform3fv(uniform.uniform_location(), 1, glm::value_ptr(vector));
+}
+
+void gl::uniform_float(const uniform_location_t& uniform, float value) noexcept {
+    glUniform1f(uniform.uniform_location(), value);
+}
+
+void gl::draw_arrays(GLenum mode, GLint first, GLsizei count) noexcept {
+    glDrawArrays(mode, first, count);
+}
+
 void gl::draw_elements(GLenum mode, GLsizei count, GLenum type) noexcept {
     glDrawElements(mode, count, type, nullptr);
 }
