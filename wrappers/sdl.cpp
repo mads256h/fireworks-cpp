@@ -4,8 +4,6 @@
 
 #include "sdl.hpp"
 
-#include <SDL2/SDL_messagebox.h> // IWYU pragma: keep
-
 #include <string>
 #include <sstream>
 #include <iostream>

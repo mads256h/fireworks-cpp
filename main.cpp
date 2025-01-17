@@ -3,7 +3,7 @@
 #include <GL/glew.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp> // IWYU pragma: keep
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
