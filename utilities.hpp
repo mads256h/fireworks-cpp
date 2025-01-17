@@ -6,6 +6,7 @@
 #define UTILITIES_HPP
 
 #include <utility>
+#include <iostream>
 
 namespace utilities {
 template<typename T, typename TDestroyer>

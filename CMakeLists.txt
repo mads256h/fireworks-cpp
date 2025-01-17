@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30)
+cmake_minimum_required(VERSION 3.21)
 project(fireworks_cpp)
 
 set(CMAKE_CXX_STANDARD 26)
@@ -42,7 +42,12 @@ find_package(SDL2 REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glm REQUIRED)
-find_package(ImGUI REQUIRED)
+
+if (NOT DEFINED IMGUI_LIBRARIES AND NOT DEFINED IMGUI_INCLUDE_DIRS)
+       find_package(imgui REQUIRED)
+       set(IMGUI_LIBRARIES imgui::imgui)
+endif ()
+
 
 include(cmake/sanitizers.cmake)
 
@@ -59,5 +64,5 @@ add_executable(fireworks_cpp main.cpp
         wrappers/opengl.cpp
         wrappers/sdl.cpp
         wrappers/glew.cpp)
-target_link_libraries(fireworks_cpp ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${GLM_LIBRARIES} ${IMGUI_LIBRARIES} imgui::imgui)
+target_link_libraries(fireworks_cpp ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${GLM_LIBRARIES} ${IMGUI_LIBRARIES})
 

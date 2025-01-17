@@ -57,7 +57,7 @@ jobs:
     - name: Install dependencies
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get install libsdl2-dev libglew-dev libglm-dev
+        sudo apt-get install libsdl2-dev libglew-dev libglm-dev libimgui-dev
 
     - name: run-vcpkg
       if: runner.os == 'Windows'
@@ -75,6 +75,7 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -S ${{ github.workspace }}
+        ${{ runner.os == 'Linux' && '-DIMGUI_LIBRARIES="imgui;stb" "-DIMGUI_INCLUDE_DIRS=/usr/include/imgui;/usr/include/imgui/backends"' || '' }}
         ${{ runner.os == 'Windows' && format('-D CMAKE_TOOLCHAIN_FILE={0}\scripts\buildsystems\vcpkg.cmake', env.VCPKG_ROOT) || '' }}
 
     - name: Build
