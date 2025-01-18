@@ -4,8 +4,6 @@
 
 #include "frame_buffer_object.hpp"
 
-#include "../../globals.hpp"
-
 void set_texture_size(GLuint texture_object, const glm::ivec2& size) {
     glBindTexture(GL_TEXTURE_2D, texture_object);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);

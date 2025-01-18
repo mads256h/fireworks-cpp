@@ -3,7 +3,7 @@
 #include <GL/glew.h>
 
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_transform.hpp> // IWYU pragma: keep
 #include <glm/gtc/type_ptr.hpp>
 
 #include <imgui.h>
@@ -13,6 +13,8 @@
 #include "wrappers/sdl.hpp"
 #include "wrappers/glew.hpp"
 #include "wrappers/opengl.hpp"
+#include "wrappers/opengl/attribute_buffer_object.hpp"
+#include "wrappers/opengl/frame_buffer_object.hpp"
 
 #include "primitives.hpp"
 #include "globals.hpp"
@@ -27,6 +29,7 @@
 #include <format>
 #include <vector>
 #include <utility>
+#include <algorithm>
 
 using namespace std::string_view_literals;
 

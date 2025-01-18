@@ -1,11 +1,12 @@
-// IWYU pragma: private, include "wrappers/opengl.hpp"
-
 #ifndef ATTRIBUTE_BUFFER_OBJECT_HPP
 #define ATTRIBUTE_BUFFER_OBJECT_HPP
 
 #include <glm/glm.hpp>
 
 #include <GL/glew.h>
+
+#include <iostream>
+#include <type_traits>
 
 #include "shader.hpp"
 

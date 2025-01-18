@@ -9,8 +9,6 @@
 #include <glm/glm.hpp>
 
 #include "opengl/shader.hpp"
-#include "opengl/attribute_buffer_object.hpp"
-#include "opengl/frame_buffer_object.hpp"
 #include "../utilities.hpp"
 
 namespace gl {

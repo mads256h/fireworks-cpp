@@ -6,9 +6,9 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include <cstdio>
 #include <cstdlib>
 #include <vector>
+#include <iostream>
 
 
 void gl::enable(GLenum cap) noexcept {
@@ -26,8 +26,7 @@ void gl::debug_message_callback(GLDEBUGPROC callback, const void* userParameter)
 gl::program_t gl::create_program() noexcept {
     auto program = glCreateProgram();
     if (program == 0) {
-        // TODO: FIX
-        std::fprintf(stderr, "Failed to create OpenGL program\n");
+        std::cerr << "Failed to create OpenGL program" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 

@@ -4,6 +4,8 @@
 
 #include "attribute_buffer_object.hpp"
 
+#include <cstdlib>
+
 gl::attribute_location_t gl::get_attribute_location(const program_t& program, const char* name) noexcept {
     auto attribute = glGetAttribLocation(program.value(), name);
 

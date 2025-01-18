@@ -1,6 +1,6 @@
 [
     { "include": ["@<glm/detail/.*>", "private", "<glm/glm.hpp>", "public"] },
-    { "include": ["@<glm/gtc/(.*).inl>", "private", "<glm/gtc/\1.hpp>", "public"] },
+    { "include": ["@<glm/gtc/(.*).inl>", "private", "<glm/gtc/\\1.hpp>", "public"] },
     { "include": ["@<glm/ext/.*>", "private", "<glm/glm.hpp>", "public"] },
 
     { "include": ["@<SDL.*>", "private", "<SDL2/SDL.h>", "public"] }
