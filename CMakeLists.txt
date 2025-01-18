@@ -62,6 +62,8 @@ add_executable(fireworks_cpp src/main.cpp
         src/wrappers/opengl.cpp
         src/wrappers/sdl.cpp
         src/wrappers/glew.cpp
+        src/wrappers/opengl/frame_buffer_object.cpp
+        src/wrappers/opengl/attribute_buffer_object.cpp
         ${GENERATED_RESOURCE_CPP_FILE})
 target_link_libraries(fireworks_cpp ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${GLM_LIBRARIES} ${IMGUI_LIBRARIES})
 add_dependencies(fireworks_cpp embed_resources)

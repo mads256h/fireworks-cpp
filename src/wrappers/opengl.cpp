@@ -10,24 +10,6 @@
 #include <cstdlib>
 #include <vector>
 
-gl::attribute_location_t gl::get_attribute_location(const program_t& program, const char* name) noexcept {
-    auto attribute = glGetAttribLocation(program.value(), name);
-
-    if (attribute == -1) {
-        std::cerr << "Failed to get attribute location " << name << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
-
-    return attribute_location_t(attribute);
-}
-
-void gl::enable_vertex_attribute_array(const attribute_location_t& attribute) noexcept {
-    glEnableVertexAttribArray(attribute.attribute_location());
-}
-
-void gl::disable_vertex_attribute_array(const attribute_location_t& attribute) noexcept {
-    glDisableVertexAttribArray(attribute.attribute_location());
-}
 
 void gl::enable(GLenum cap) noexcept {
     glEnable(cap);
@@ -110,10 +92,6 @@ gl::vertex_array_object_t gl::generate_vertex_array_object() noexcept {
     return {vertex_array_object, [](GLuint vertex_array_object) { glDeleteVertexArrays(1, &vertex_array_object); }};
 }
 
-void gl::vertex_attrib_pointer(const attribute_location_t& attribute) noexcept {
-    glVertexAttribPointer(attribute.attribute_location(), 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
-}
-
 void gl::uniform_matrix(const uniform_location_t& uniform, const glm::mat4& matrix) noexcept {
     glUniformMatrix4fv(uniform.uniform_location(), 1, GL_FALSE, glm::value_ptr(matrix));
 }
@@ -124,6 +102,10 @@ void gl::uniform_vec3(const uniform_location_t& uniform, const glm::vec3& vector
 
 void gl::uniform_float(const uniform_location_t& uniform, float value) noexcept {
     glUniform1f(uniform.uniform_location(), value);
+}
+
+void gl::uniform_frame_buffer(const uniform_location_t& uniform, GLint texture_index) noexcept {
+    glUniform1i(uniform.uniform_location(), texture_index);
 }
 
 void gl::draw_arrays(GLenum mode, GLint first, GLsizei count) noexcept {

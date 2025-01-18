@@ -12,8 +12,8 @@ GLuint gl::create_shader(GLenum type) noexcept {
     auto shader = glCreateShader(type);
     if (shader == 0) {
         // TODO: FIX
-        fprintf(stderr, "Failed to create OpenGL shader\n");
-        exit(EXIT_FAILURE);
+        std::fprintf(stderr, "Failed to create OpenGL shader\n");
+        std::exit(EXIT_FAILURE);
     }
 
     return shader;

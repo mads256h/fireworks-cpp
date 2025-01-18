@@ -15,6 +15,7 @@
 #include "wrappers/opengl.hpp"
 
 #include "primitives.hpp"
+#include "globals.hpp"
 
 #include "resources.hpp"
 
@@ -62,11 +63,25 @@ struct line_shader_stuff_t {
     gl::model_matrix_buffer_object_t model_matrix_buffer_object;
     gl::model_color_buffer_object_t model_color_buffer_object;
     gl::vertex_width_buffer_object_t vertex_width_buffer_object;
+    gl::frame_buffer_object_t frame_buffer_object;
+};
+
+struct combiner_shader_stuff_t {
+    gl::program_t program;
+    gl::vertex_shader_t vertex_shader;
+    gl::fragment_shader_t fragment_shader;
+    gl::vertex_array_object_t vertex_array_object;
+    gl::vertex_buffer_object_t vertex_buffer_object;
+    gl::index_buffer_object_t index_buffer_object;
+    gl::texture_coordinate_buffer_object_t texture_coordinate_buffer_object;
+    gl::uniform_location_t projection_uniform;
+    gl::uniform_location_t lines_frame_buffer_uniform;
 };
 
 struct shader_stuff_t {
     star_shader_stuff_t star_shader_stuff;
     line_shader_stuff_t line_shader_stuff;
+    combiner_shader_stuff_t combiner_shader_stuff;
 };
 
 struct window_state_t {
@@ -77,17 +92,18 @@ struct window_state_t {
     // Lines
     glm::vec3 m_line_color = glm::vec3(1.0f);
 
+
     // Misc.
     bool m_show_fps = true;
 };
 
-shader_stuff_t init_gl();
+shader_stuff_t init_gl(const glm::ivec2& window_size);
 
 void render(const shader_stuff_t& stuff,
             const glm::mat4& projection_matrix,
             const window_state_t& window_state,
             const std::vector<line>& lines,
-            const glm::vec2& window_size);
+            const glm::ivec2& window_size);
 
 void GLAPIENTRY debug_message_callback(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void*);
 
@@ -147,7 +163,7 @@ extern "C" int main(int, char**) {
         sdl::gl_set_attribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
         sdl::gl_set_attribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
         sdl::gl_set_attribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-        sdl::gl_set_attribute(SDL_GL_MULTISAMPLESAMPLES, 8);
+        sdl::gl_set_attribute(SDL_GL_MULTISAMPLESAMPLES, multisample_samples);
 
         auto window = sdl::create_window("Hello World!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720,
                                          SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
@@ -170,14 +186,15 @@ extern "C" int main(int, char**) {
         ImGui_ImplSDL2_InitForOpenGL(window.get(), gl_context.value());
         ImGui_ImplOpenGL3_Init("#version 130");
 
-        auto stuff = init_gl();
-
-        window_state_t window_state;
-
         glm::mat4 projection_matrix;
         glm::vec2 window_size;
         // Set the window size and projection matrix
         on_resize(projection_matrix, window_size, 1280, 720);
+
+        auto stuff = init_gl(window_size);
+
+        window_state_t window_state;
+
 
         while (!quit) {
             for (auto pool_event_result = sdl::pool_event(); pool_event_result.pending_event;
@@ -200,7 +217,7 @@ extern "C" int main(int, char**) {
                                 got_first_point = true;
                             } else {
                                 glm::vec2 end_position{x, y};
-                                lines.emplace_back(first_point, end_position, window_state.m_line_color, 2.0f, 1.0f);
+                                lines.emplace_back(first_point, end_position, window_state.m_line_color, 50.0f, 20.0f);
                                 got_first_point = false;
                             }
                         }
@@ -282,13 +299,13 @@ star_shader_stuff_t create_star_shader() {
 
     gl::link_program(program);
 
-    auto projection_uniform = gl::get_uniform_location(program, "projection_matrix");
-    auto background_color_uniform = gl::get_uniform_location(program, "background_color");
-    auto star_density_uniform = gl::get_uniform_location(program, "star_density");
-
     auto vertex_array_object = gl::generate_vertex_array_object();
     auto vertex_buffer_object = gl::vertex_buffer_object_t::create_buffer_object(program, "vertex_position");
     auto index_buffer_object = gl::index_buffer_object_t::create_buffer_object(vertex_indices);
+
+    auto projection_uniform = gl::get_uniform_location(program, "projection_matrix");
+    auto background_color_uniform = gl::get_uniform_location(program, "background_color");
+    auto star_density_uniform = gl::get_uniform_location(program, "star_density");
 
     return {std::move(program),
             std::move(vertex_shader),
@@ -301,7 +318,7 @@ star_shader_stuff_t create_star_shader() {
             star_density_uniform};
 }
 
-line_shader_stuff_t create_line_shader() {
+line_shader_stuff_t create_line_shader(glm::ivec2 window_size) {
     auto program = gl::create_program();
 
     // Vertex shader
@@ -325,6 +342,8 @@ line_shader_stuff_t create_line_shader() {
     auto model_color_buffer_object = gl::model_color_buffer_object_t::create_buffer_object(program, "model_color");
     auto vertex_width_buffer_object = gl::vertex_width_buffer_object_t::create_buffer_object(program, "vertex_width");
 
+    auto frame_buffer_object = gl::frame_buffer_object_t::create(window_size);
+
     return {std::move(program),
             std::move(vertex_shader),
             std::move(fragment_shader),
@@ -335,10 +354,40 @@ line_shader_stuff_t create_line_shader() {
             std::move(texture_coordinate_buffer_object),
             std::move(model_matrix_buffer_object),
             std::move(model_color_buffer_object),
-            std::move(vertex_width_buffer_object)};
+            std::move(vertex_width_buffer_object),
+            std::move(frame_buffer_object)};
 }
 
-shader_stuff_t init_gl() {
+combiner_shader_stuff_t create_combiner_shader() {
+    auto program = gl::create_program();
+
+    auto vertex_shader = gl::vertex_shader_t::create_shader(program, resources::star_vertex_shader_vsh);
+    auto fragment_shader = gl::fragment_shader_t::create_shader(program, resources::combiner_fragment_shader_fsh);
+
+    gl::link_program(program);
+
+    auto vertex_array_object = gl::generate_vertex_array_object();
+    auto vertex_buffer_object = gl::vertex_buffer_object_t::create_buffer_object(program, "vertex_position");
+    auto index_buffer_object = gl::index_buffer_object_t::create_buffer_object(vertex_indices);
+    auto texture_coordinate_buffer_object = gl::texture_coordinate_buffer_object_t::create_buffer_object(
+            vertex_uvs, program, "vertex_uv");
+
+    auto projection_uniform = gl::get_uniform_location(program, "projection_matrix");
+    auto lines_frame_buffer_uniform = gl::get_uniform_location(program, "lines_frame_buffer");
+
+    return {
+        std::move(program),
+        std::move(vertex_shader),
+        std::move(fragment_shader),
+        std::move(vertex_array_object),
+        std::move(vertex_buffer_object),
+        std::move(index_buffer_object),
+        std::move(texture_coordinate_buffer_object),
+        projection_uniform,
+        lines_frame_buffer_uniform};
+}
+
+shader_stuff_t init_gl(const glm::ivec2& window_size) {
 #ifndef NDEBUG
     gl::enable(GL_DEBUG_OUTPUT);
     gl::debug_message_callback(debug_message_callback, nullptr);
@@ -353,10 +402,11 @@ shader_stuff_t init_gl() {
     gl::clear_color(1.0f, 0.0f, 1.0f, 1.0f);
 
     auto star_shader_stuff = create_star_shader();
-    auto line_shader_stuff = create_line_shader();
+    auto line_shader_stuff = create_line_shader(window_size);
+    auto combiner_shader_stuff = create_combiner_shader();
 
 
-    return {std::move(star_shader_stuff), std::move(line_shader_stuff)};
+    return {std::move(star_shader_stuff), std::move(line_shader_stuff), std::move(combiner_shader_stuff)};
 }
 
 void debug_message_callback(GLenum source,
@@ -477,9 +527,9 @@ void set_uniform_if_changed(T& old_value,
 void render_stars(const star_shader_stuff_t& stuff,
                   const window_state_t& window_state,
                   const glm::mat4& projection_matrix,
-                  glm::vec2 window_size) {
+                  glm::ivec2 window_size) {
     static glm::mat4 old_projection_matrix = glm::identity<glm::mat4>();
-    static glm::vec2 old_window_size = {0.0f, 0.0f};
+    static glm::ivec2 old_window_size = {0.0f, 0.0f};
     static glm::vec3 old_background_color = {0.0f, 0.0f, 0.0f};
     static float old_star_density = 0.0f;
 
@@ -492,9 +542,7 @@ void render_stars(const star_shader_stuff_t& stuff,
     set_uniform_if_changed(old_star_density, window_state.m_stars_density, stuff.star_density_uniform,
                            gl::uniform_float);
 
-    // There is a bug that the window needs to be resized for this to work.
-    // It should set the data once always but somehow it gets fucked up.
-    if (old_window_size != window_size || true) {
+    if (old_window_size != window_size) {
         const std::array<glm::vec2, 4> vertex_positions = {glm::vec2{0.0f, 0.0f},
                                                            {window_size.x, 0.0f},
                                                            {window_size.x, window_size.y},
@@ -515,8 +563,10 @@ void render_stars(const star_shader_stuff_t& stuff,
 
 void render_lines(const line_shader_stuff_t& stuff,
                   const glm::mat4& projection_matrix,
+                  const glm::ivec2& window_size,
                   const std::vector<line>& lines) {
     static glm::mat4 old_projection_matrix = glm::identity<glm::mat4>();
+    static glm::ivec2 old_window_size = {0.0f, 0.0f};
 
     std::vector<glm::mat4> model_matrixes;
     for (auto& line : lines) {
@@ -533,6 +583,15 @@ void render_lines(const line_shader_stuff_t& stuff,
         vertex_widths.emplace_back(line.start_width(), line.end_width());
     }
 
+
+    if (old_window_size != window_size) {
+        stuff.frame_buffer_object.set_size(window_size);
+        old_window_size = window_size;
+    }
+    stuff.frame_buffer_object.bind();
+
+    gl::clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+    gl::clear(GL_COLOR_BUFFER_BIT);
 
     gl::use_program(stuff.program);
 
@@ -557,16 +616,71 @@ void render_lines(const line_shader_stuff_t& stuff,
     glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, vertex_indices.size(), lines.size());
 
     gl::unbind_program();
+
+    stuff.frame_buffer_object.unbind();
+
+}
+
+void render_combiner(const combiner_shader_stuff_t& stuff,
+    const gl::frame_buffer_object_t& lines_frame_buffer_object,
+    const glm::mat4& projection_matrix,
+    const glm::ivec2& window_size) {
+    static glm::mat4 old_projection_matrix = glm::identity<glm::mat4>();
+    static glm::ivec2 old_window_size = {0.0f, 0.0f};
+
+
+    gl::use_program(stuff.program);
+
+    set_uniform_if_changed(old_projection_matrix, projection_matrix, stuff.projection_uniform, gl::uniform_matrix);
+    if (old_window_size != window_size) {
+        lines_frame_buffer_object.set_size(window_size);
+        //gl::uniform_frame_buffer(stuff.lines_frame_buffer_uniform, lines_frame_buffer_object);
+
+        const std::array<glm::vec2, 4> vertex_positions = {glm::vec2{0.0f, 0.0f},
+                                                           {window_size.x, 0.0f},
+                                                           {window_size.x, window_size.y},
+                                                           {0.0f, window_size.y}};
+
+        stuff.vertex_buffer_object.set_data(vertex_positions);
+
+        old_window_size = window_size;
+    }
+    else {
+        stuff.vertex_buffer_object.bind();
+    }
+
+    // HACK
+    glActiveTexture(GL_TEXTURE0);
+    lines_frame_buffer_object.bind_texture();
+    gl::uniform_frame_buffer(stuff.lines_frame_buffer_uniform, 0);
+
+    stuff.vertex_buffer_object.upload();
+
+    stuff.texture_coordinate_buffer_object.bind();
+    stuff.texture_coordinate_buffer_object.upload();
+
+    stuff.index_buffer_object.bind();
+    gl::draw_arrays(GL_TRIANGLE_FAN, 1, 4);
+
+    gl::unbind_program();
 }
 
 void render(const shader_stuff_t& stuff,
             const glm::mat4& projection_matrix,
             const window_state_t& window_state,
             const std::vector<line>& lines,
-            const glm::vec2& window_size) {
+            const glm::ivec2& window_size) {
+    gl::clear_color(1.0f, 0.0f, 1.0f, 1.0f);
     gl::clear(GL_COLOR_BUFFER_BIT);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     render_stars(stuff.star_shader_stuff, window_state, projection_matrix, window_size);
-    render_lines(stuff.line_shader_stuff, projection_matrix, lines);
+    glBlendFunc(GL_ONE, GL_ONE);
+    glBlendEquation(GL_MAX);
+    render_lines(stuff.line_shader_stuff, projection_matrix, window_size, lines);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
+    render_combiner(stuff.combiner_shader_stuff, stuff.line_shader_stuff.frame_buffer_object, projection_matrix, window_size);
 }
 
 
