@@ -7,6 +7,7 @@
 
 #include "primitives.hpp"
 
+#include <algorithm>
 #include <numbers>
 #include <cmath>
 
