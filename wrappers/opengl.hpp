@@ -93,7 +93,7 @@ public:
             const auto location = m_attribute_location.attribute_location() + i;
             glEnableVertexAttribArray(location);
             glVertexAttribPointer(location, Size, Type, GL_FALSE, sizeof(TValue),
-                                  (const GLvoid*) (sizeof(GLfloat) * i * Size));
+                                  reinterpret_cast<const GLvoid*>(sizeof(GLfloat) * i * Size));
             if constexpr (Instanced) {
                 glVertexAttribDivisor(location, 1);
             } else {

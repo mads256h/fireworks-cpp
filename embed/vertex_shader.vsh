@@ -1,4 +1,4 @@
-#version 460 core
+#version 420 core
 
 in vec2 vertex_position;
 in vec2 vertex_uv;

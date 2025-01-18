@@ -122,15 +122,10 @@ extern "C" int main(int, char**) {
                                             performance_frequency);
 
         sdl::gl_set_attribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-        sdl::gl_set_attribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+        sdl::gl_set_attribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
         sdl::gl_set_attribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
         sdl::gl_set_attribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
         sdl::gl_set_attribute(SDL_GL_MULTISAMPLESAMPLES, 8);
-
-        // Needed by IMGUI
-        sdl::gl_set_attribute(SDL_GL_DOUBLEBUFFER, 1);
-        sdl::gl_set_attribute(SDL_GL_DEPTH_SIZE, 24);
-        sdl::gl_set_attribute(SDL_GL_STENCIL_SIZE, 8);
 
         auto window = sdl::create_window("Hello World!", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720,
                                          SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
@@ -549,8 +544,6 @@ void render(const shader_stuff_t& stuff,
             const std::vector<line>& lines,
             const glm::vec2& window_size) {
     gl::clear(GL_COLOR_BUFFER_BIT);
-    gl::enable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     render_stars(stuff.star_shader_stuff, window_state, projection_matrix, window_size);
     render_lines(stuff.line_shader_stuff, projection_matrix, lines);
 }
