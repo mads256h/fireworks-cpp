@@ -27,7 +27,7 @@ line::line(glm::vec2 start_position,
     : m_color(color),
       m_start_width(start_width),
       m_end_width(end_width) {
-    constexpr auto width = 50.0f;
+    auto width = std::max(start_width, end_width);
 
     auto vector = end_position - start_position;
     auto length = glm::length(vector);

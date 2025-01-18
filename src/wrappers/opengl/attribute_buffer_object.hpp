@@ -141,7 +141,7 @@ using model_matrix_buffer_object_t = attribute_buffer_object_t<glm::mat4, GL_ARR
     GL_DYNAMIC_DRAW>;
 using model_color_buffer_object_t = attribute_buffer_object_t<glm::vec3, GL_ARRAY_BUFFER, 3, GL_FLOAT, true,
     GL_DYNAMIC_DRAW>;
-using vertex_width_buffer_object_t = attribute_buffer_object_t<glm::vec2, GL_ARRAY_BUFFER, 2, GL_FLOAT, true,
+using vertex_width_buffer_object_t = attribute_buffer_object_t<glm::vec3, GL_ARRAY_BUFFER, 3, GL_FLOAT, true,
     GL_DYNAMIC_DRAW>;
 
 

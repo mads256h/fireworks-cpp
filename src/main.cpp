@@ -91,6 +91,8 @@ struct window_state_t {
 
     // Lines
     glm::vec3 m_line_color = glm::vec3(1.0f);
+    float m_start_width = 50.0f;
+    float m_end_width = 20.0f;
 
 
     // Misc.
@@ -120,6 +122,8 @@ void render_debug_menu(window_state_t& window_state, bool render_imgui) {
             }
             if (ImGui::BeginTabItem("Line")) {
                 ImGui::ColorPicker3("Color", glm::value_ptr(window_state.m_line_color));
+                ImGui::DragFloat("Start Width", &window_state.m_start_width, 1.0f, 1.0f, 50.0f);
+                ImGui::DragFloat("End Width", &window_state.m_end_width, 1.0f, 1.0f, 50.0f);
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Misc.")) {
@@ -217,7 +221,7 @@ extern "C" int main(int, char**) {
                                 got_first_point = true;
                             } else {
                                 glm::vec2 end_position{x, y};
-                                lines.emplace_back(first_point, end_position, window_state.m_line_color, 50.0f, 20.0f);
+                                lines.emplace_back(first_point, end_position, window_state.m_line_color, window_state.m_start_width, window_state.m_end_width);
                                 got_first_point = false;
                             }
                         }
@@ -578,9 +582,9 @@ void render_lines(const line_shader_stuff_t& stuff,
         model_colors.push_back(line.color());
     }
 
-    std::vector<glm::vec2> vertex_widths;
+    std::vector<glm::vec3> vertex_widths;
     for (auto& line : lines) {
-        vertex_widths.emplace_back(line.start_width(), line.end_width());
+        vertex_widths.emplace_back(line.start_width(), line.end_width(), std::max(line.start_width(), line.end_width()));
     }
 
 
@@ -678,9 +682,7 @@ void render(const shader_stuff_t& stuff,
     glBlendFunc(GL_ONE, GL_ONE);
     glBlendEquation(GL_MAX);
     render_lines(stuff.line_shader_stuff, projection_matrix, window_size, lines);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_COLOR);
     glBlendEquation(GL_FUNC_ADD);
     render_combiner(stuff.combiner_shader_stuff, stuff.line_shader_stuff.frame_buffer_object, projection_matrix, window_size);
 }
-
-
