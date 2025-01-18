@@ -15,7 +15,7 @@ uniform mat4 projection_matrix;
 
 void main() {
     uv = vertex_uv;
-    color = model_color + vec3(vertex_uv, 0.0);
+    color = model_color;
     start_width = vertex_width.x;
     end_width = vertex_width.y;
     gl_Position = projection_matrix * model_matrix * vec4(vertex_position.xy, 0, 1);

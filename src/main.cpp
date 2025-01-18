@@ -70,9 +70,15 @@ struct shader_stuff_t {
 };
 
 struct window_state_t {
+    // Stars
+    glm::vec3 m_stars_background_color = glm::vec3(0.0f);
+    float m_stars_density = 0.98f;
+
+    // Lines
+    glm::vec3 m_line_color = glm::vec3(1.0f);
+
+    // Misc.
     bool m_show_fps = true;
-    glm::vec3 m_background_color = glm::vec3(0.0f);
-    float m_star_density = 0.98f;
 };
 
 shader_stuff_t init_gl();
@@ -85,18 +91,35 @@ void render(const shader_stuff_t& stuff,
 
 void GLAPIENTRY debug_message_callback(GLenum, GLenum, GLuint, GLenum, GLsizei, const GLchar*, const void*);
 
-window_state_t& render_debug_menu(bool render_imgui) {
-    static window_state_t state;
+void render_debug_menu(window_state_t& window_state, bool render_imgui) {
+    constexpr const char* tab_id = "tab_id";
 
     if (render_imgui) {
         ImGui::Begin("Debug menu");
-        ImGui::Checkbox("Show FPS", &state.m_show_fps);
-        ImGui::ColorPicker3("Background Color", glm::value_ptr(state.m_background_color));
-        ImGui::DragFloat("Star Density", &state.m_star_density, 0.001f, 0.0f, 1.0f);
+        if (ImGui::BeginTabBar(tab_id)) {
+            if (ImGui::BeginTabItem("Stars")) {
+                ImGui::ColorPicker3("Background Color", glm::value_ptr(window_state.m_stars_background_color));
+                ImGui::DragFloat("Star Density", &window_state.m_stars_density, 0.001f, 0.0f, 1.0f);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Line")) {
+                ImGui::ColorPicker3("Color", glm::value_ptr(window_state.m_line_color));
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Misc.")) {
+                ImGui::Checkbox("Show FPS", &window_state.m_show_fps);
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
         ImGui::End();
     }
+}
 
-    return state;
+void on_resize(glm::mat<4, 4, float>& projection_matrix, glm::vec2& window_size, Sint32 x, Sint32 y) {
+    projection_matrix = glm::ortho(0.0f, static_cast<float>(x), static_cast<float>(y), 0.0f, -1.0f, 1.0f);
+    glViewport(0, 0, x, y);
+    window_size = {x, y};
 }
 
 extern "C" int main(int, char**) {
@@ -149,9 +172,12 @@ extern "C" int main(int, char**) {
 
         auto stuff = init_gl();
 
-        auto projection_matrix = glm::identity<glm::mat4>();
+        window_state_t window_state;
 
-        glm::vec2 window_size{1280, 720};
+        glm::mat4 projection_matrix;
+        glm::vec2 window_size;
+        // Set the window size and projection matrix
+        on_resize(projection_matrix, window_size, 1280, 720);
 
         while (!quit) {
             for (auto pool_event_result = sdl::pool_event(); pool_event_result.pending_event;
@@ -174,7 +200,7 @@ extern "C" int main(int, char**) {
                                 got_first_point = true;
                             } else {
                                 glm::vec2 end_position{x, y};
-                                lines.emplace_back(first_point, end_position, glm::vec3(1.0f), 2.0f, 1.0f);
+                                lines.emplace_back(first_point, end_position, window_state.m_line_color, 2.0f, 1.0f);
                                 got_first_point = false;
                             }
                         }
@@ -185,10 +211,7 @@ extern "C" int main(int, char**) {
                             auto x = pool_event_result.event.window.data1;
                             auto y = pool_event_result.event.window.data2;
 
-                            projection_matrix = glm::ortho(0.0f, static_cast<float>(x), static_cast<float>(y), 0.0f,
-                                                           -1.0f, 1.0f);
-                            glViewport(0, 0, x, y);
-                            window_size = {x, y};
+                            on_resize(projection_matrix, window_size, x, y);
                         }
                         break;
 
@@ -216,7 +239,7 @@ extern "C" int main(int, char**) {
             last_fps_update += delta_time;
             frames_this_update++;
 
-            auto window_state = render_debug_menu(render_imgui);
+            render_debug_menu(window_state, render_imgui);
 
             if (window_state.m_show_fps && render_imgui) {
                 ImGui::GetForegroundDrawList()->AddText(ImGui::GetFont(), ImGui::GetFontSize(), ImVec2(0.0f, 0.0f),
@@ -464,12 +487,14 @@ void render_stars(const star_shader_stuff_t& stuff,
 
 
     set_uniform_if_changed(old_projection_matrix, projection_matrix, stuff.projection_uniform, gl::uniform_matrix);
-    set_uniform_if_changed(old_background_color, window_state.m_background_color, stuff.background_color_uniform,
+    set_uniform_if_changed(old_background_color, window_state.m_stars_background_color, stuff.background_color_uniform,
                            gl::uniform_vec3);
-    set_uniform_if_changed(old_star_density, window_state.m_star_density, stuff.star_density_uniform,
+    set_uniform_if_changed(old_star_density, window_state.m_stars_density, stuff.star_density_uniform,
                            gl::uniform_float);
 
-    if (old_window_size != window_size) {
+    // There is a bug that the window needs to be resized for this to work.
+    // It should set the data once always but somehow it gets fucked up.
+    if (old_window_size != window_size || true) {
         const std::array<glm::vec2, 4> vertex_positions = {glm::vec2{0.0f, 0.0f},
                                                            {window_size.x, 0.0f},
                                                            {window_size.x, window_size.y},
