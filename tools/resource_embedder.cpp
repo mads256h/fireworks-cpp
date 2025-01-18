@@ -87,24 +87,22 @@ int main(int argc, char** argv) {
             << "}\n" //
             << "#endif\n";
 
-    std::string resource_hpp_file_contents_string = resource_hpp_file_contents.str(); {
-        std::ifstream resource_hpp_file_in(resource_hpp_path, std::ios::binary);
-        if (resource_hpp_file_in.is_open()) {
-            std::stringstream old_resource_hpp_file_contents;
-            old_resource_hpp_file_contents << resource_hpp_file_in.rdbuf();
+    std::string resource_hpp_file_contents_string = resource_hpp_file_contents.str();
+    if (std::ifstream resource_hpp_file_in(resource_hpp_path, std::ios::binary); resource_hpp_file_in.is_open()) {
+        std::stringstream old_resource_hpp_file_contents;
+        old_resource_hpp_file_contents << resource_hpp_file_in.rdbuf();
 
-            // We are the same don't update this file.
-            // This means that we don't need to recompile other files than the resource cpp file.
-            std::string old_resource_hpp_file_contents_string = old_resource_hpp_file_contents.str();
-            if (old_resource_hpp_file_contents_string == resource_hpp_file_contents_string) {
-                std::cout << resource_hpp_path << " has not changed." << std::endl;
-                return EXIT_SUCCESS;
-            } else {
-                std::cout << resource_hpp_path << " has changed. Generating" << std::endl;
-            }
-        } else {
-            std::cout << resource_hpp_path << " does not exist. Generating..." << std::endl;
+        // We are the same don't update this file.
+        // This means that we don't need to recompile other files than the resource cpp file.
+        if (std::string old_resource_hpp_file_contents_string = old_resource_hpp_file_contents.str();
+            old_resource_hpp_file_contents_string == resource_hpp_file_contents_string) {
+            std::cout << resource_hpp_path << " has not changed." << std::endl;
+            return EXIT_SUCCESS;
         }
+
+        std::cout << resource_hpp_path << " has changed. Generating" << std::endl;
+    } else {
+        std::cout << resource_hpp_path << " does not exist. Generating..." << std::endl;
     }
 
     // There are changes.

@@ -56,12 +56,12 @@ add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
 
 include_directories(fireworks_cpp ${GENERATED_RESOURCE_DIRECTORY} ${SDL2_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS} ${GLM_INCLUDE_DIRS} ${IMGUI_INCLUDE_DIRS})
 
-add_executable(fireworks_cpp main.cpp
-        primitives.cpp
-        wrappers/opengl/shader.cpp
-        wrappers/opengl.cpp
-        wrappers/sdl.cpp
-        wrappers/glew.cpp
+add_executable(fireworks_cpp src/main.cpp
+        src/primitives.cpp
+        src/wrappers/opengl/shader.cpp
+        src/wrappers/opengl.cpp
+        src/wrappers/sdl.cpp
+        src/wrappers/glew.cpp
         ${GENERATED_RESOURCE_CPP_FILE})
 target_link_libraries(fireworks_cpp ${SDL2_LIBRARIES} ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} ${GLM_LIBRARIES} ${IMGUI_LIBRARIES})
 add_dependencies(fireworks_cpp embed_resources)

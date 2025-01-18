@@ -37,23 +37,23 @@ public:
     [[nodiscard]] constexpr GLint uniform_location() const noexcept { return m_uniform_location; }
 };
 
-attribute_location_t get_attribute_location(const program_t& program, const char* name) noexcept;
+[[nodiscard]] attribute_location_t get_attribute_location(const program_t& program, const char* name) noexcept;
 
 void enable_vertex_attribute_array(const attribute_location_t& attribute) noexcept;
 
 void disable_vertex_attribute_array(const attribute_location_t& attribute) noexcept;
 
 template<typename TValue, GLenum Target, GLint Size, GLenum Type, bool Instanced = false, GLenum Usage = GL_STATIC_DRAW>
-class attribute_buffer_object_t {
+class [[nodiscard]] attribute_buffer_object_t {
     attribute_location_t m_attribute_location;
     GLuint m_buffer_object;
     bool m_moved;
 
-    explicit constexpr attribute_buffer_object_t(attribute_location_t attribute_location, GLuint buffer_object) noexcept
+    [[nodiscard]] explicit constexpr attribute_buffer_object_t(attribute_location_t attribute_location, GLuint buffer_object) noexcept
         : m_attribute_location(attribute_location), m_buffer_object(buffer_object), m_moved(false) {
     }
 
-    explicit constexpr attribute_buffer_object_t(GLuint buffer_object) noexcept
+    [[nodiscard]] explicit constexpr attribute_buffer_object_t(GLuint buffer_object) noexcept
         : m_attribute_location(0), m_buffer_object(buffer_object), m_moved(false) {
     }
 
@@ -61,7 +61,7 @@ public:
     attribute_buffer_object_t() = delete;
 
 
-    constexpr attribute_buffer_object_t(attribute_buffer_object_t&& other) noexcept
+    [[nodiscard]] constexpr attribute_buffer_object_t(attribute_buffer_object_t&& other) noexcept
         : m_attribute_location(other.m_attribute_location), m_buffer_object(other.m_buffer_object), m_moved(false) {
         other.m_moved = true;
     }
@@ -103,7 +103,7 @@ public:
     }
 
     template<GLenum ETarget, typename = std::enable_if_t<ETarget == GL_ELEMENT_ARRAY_BUFFER> >
-    static attribute_buffer_object_t create_buffer_object() {
+    [[nodiscard]] static attribute_buffer_object_t create_buffer_object() {
         GLuint buffer_object;
         glGenBuffers(1, &buffer_object);
         glBindBuffer(Target, buffer_object);
@@ -113,7 +113,7 @@ public:
 
     template<typename TContainer, GLenum ETarget = Target, typename = std::enable_if_t<
         ETarget == GL_ELEMENT_ARRAY_BUFFER> >
-    static attribute_buffer_object_t create_buffer_object(const TContainer& data) {
+    [[nodiscard]] static attribute_buffer_object_t create_buffer_object(const TContainer& data) {
         static_assert(std::is_same_v<typename TContainer::value_type, TValue>);
 
         GLuint buffer_object;
@@ -125,7 +125,7 @@ public:
     }
 
     template<GLenum ETarget = Target, typename = std::enable_if_t<ETarget != GL_ELEMENT_ARRAY_BUFFER> >
-    static attribute_buffer_object_t create_buffer_object(const program_t& program,
+    [[nodiscard]] static attribute_buffer_object_t create_buffer_object(const program_t& program,
                                                           const char* attribute_name) noexcept {
         auto attribute_location = get_attribute_location(program, attribute_name);
 
@@ -138,7 +138,7 @@ public:
 
     template<typename TContainer, GLenum ETarget = Target, typename = std::enable_if_t<
         ETarget != GL_ELEMENT_ARRAY_BUFFER> >
-    static attribute_buffer_object_t create_buffer_object(const TContainer& data,
+    [[nodiscard]] static attribute_buffer_object_t create_buffer_object(const TContainer& data,
                                                           const program_t& program,
                                                           const char* attribute_name) noexcept {
         static_assert(std::is_same_v<typename TContainer::value_type, TValue>);
@@ -173,7 +173,7 @@ void disable(GLenum cap) noexcept;
 
 void debug_message_callback(GLDEBUGPROC callback, const void* userParameter) noexcept;
 
-program_t create_program() noexcept;
+[[nodiscard]] program_t create_program() noexcept;
 
 void print_program_info_log(const program_t& program) noexcept;
 
@@ -183,13 +183,13 @@ void use_program(const program_t& program) noexcept;
 
 void unbind_program() noexcept;
 
-uniform_location_t get_uniform_location(const program_t& program, const char* name) noexcept;
+[[nodiscard]] uniform_location_t get_uniform_location(const program_t& program, const char* name) noexcept;
 
 void clear_color(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) noexcept;
 
 void clear(GLbitfield mask) noexcept;
 
-vertex_array_object_t generate_vertex_array_object() noexcept;
+[[nodiscard]] vertex_array_object_t generate_vertex_array_object() noexcept;
 
 void vertex_attrib_pointer(const attribute_location_t& attribute) noexcept;
 

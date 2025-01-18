@@ -4,6 +4,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
@@ -25,9 +26,6 @@
 #include <format>
 #include <vector>
 #include <utility>
-#include <glm/glm.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 using namespace std::string_view_literals;
 
@@ -104,7 +102,8 @@ window_state_t& render_debug_menu(bool render_imgui) {
 extern "C" int main(int, char**) {
     sdl::init_sub_system(SDL_INIT_TIMER);
     sdl::init_sub_system(SDL_INIT_VIDEO);
-    sdl::init_sub_system(SDL_INIT_EVENTS); {
+    sdl::init_sub_system(SDL_INIT_EVENTS); //
+    {
         std::vector<line> lines;
         auto quit = false;
         bool got_first_point = false;
@@ -175,10 +174,9 @@ extern "C" int main(int, char**) {
                                 got_first_point = true;
                             } else {
                                 glm::vec2 end_position{x, y};
-                                lines.emplace_back(first_point, end_position, glm::vec3(1.0f), 50.0f, 20.0f);
+                                lines.emplace_back(first_point, end_position, glm::vec3(1.0f), 2.0f, 1.0f);
                                 got_first_point = false;
                             }
-                            std::cout << "button pressed at (" << x << ", " << y << ")" << std::endl;
                         }
                         break;
 
@@ -186,8 +184,6 @@ extern "C" int main(int, char**) {
                         if (pool_event_result.event.window.event == SDL_WINDOWEVENT_RESIZED) {
                             auto x = pool_event_result.event.window.data1;
                             auto y = pool_event_result.event.window.data2;
-
-                            std::cout << "window size: " << x << ", " << y << std::endl;
 
                             projection_matrix = glm::ortho(0.0f, static_cast<float>(x), static_cast<float>(y), 0.0f,
                                                            -1.0f, 1.0f);

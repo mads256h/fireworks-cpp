@@ -10,7 +10,7 @@
 
 namespace utilities {
 template<typename T, typename TDestroyer>
-class raii_wrapper {
+class [[nodiscard]] raii_wrapper {
     T m_value;
     TDestroyer m_destroyer;
 
@@ -20,17 +20,17 @@ public:
     raii_wrapper() = delete;
 
     template<typename U = T>
-    raii_wrapper(T value, TDestroyer&& destroyer, std::enable_if_t<std::is_trivial_v<U> >* = nullptr)
+    [[nodiscard]] constexpr raii_wrapper(T value, TDestroyer&& destroyer, std::enable_if_t<std::is_trivial_v<U> >* = nullptr) noexcept
         : m_value(value), m_destroyer(std::forward<TDestroyer>(destroyer)), m_moved(false) {
     }
 
     template<typename U = T>
-    raii_wrapper(T&& value, TDestroyer&& destroyer, std::enable_if_t<!std::is_trivial_v<U>>* = nullptr)
+    [[nodiscard]] constexpr raii_wrapper(T&& value, TDestroyer&& destroyer, std::enable_if_t<!std::is_trivial_v<U>>* = nullptr) noexcept
         : m_value(std::forward<T>(value)), m_destroyer(std::forward<TDestroyer>(destroyer)), m_moved(false) {
     }
 
 
-    raii_wrapper(raii_wrapper&& other) noexcept
+    [[nodiscard]] constexpr raii_wrapper(raii_wrapper&& other) noexcept
         : m_value(std::move(other.m_value)), m_destroyer(other.m_destroyer), m_moved(false) {
         other.m_moved = true;
     }

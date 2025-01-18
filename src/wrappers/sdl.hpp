@@ -19,19 +19,19 @@ struct pool_event_result {
 
 void init_sub_system(Uint32 flags) noexcept;
 
-window_t create_window(const char* title, int x, int y, int w, int h, Uint32 flags) noexcept;
+[[nodiscard]] window_t create_window(const char* title, int x, int y, int w, int h, Uint32 flags) noexcept;
 
-window_surface_t get_window_surface(const window_t& window) noexcept;
+[[nodiscard]] window_surface_t get_window_surface(const window_t& window) noexcept;
 
 void update_window_surface(const window_t& window) noexcept;
 
-pool_event_result pool_event() noexcept;
+[[nodiscard]] pool_event_result pool_event() noexcept;
 
 void fill_rect(window_surface_t surface, const SDL_Rect& rect, Uint32 color) noexcept;
 
 void gl_set_attribute(SDL_GLattr attribute, int value) noexcept;
 
-opengl_context_t gl_create_context(const window_t& window) noexcept;
+[[nodiscard]] opengl_context_t gl_create_context(const window_t& window) noexcept;
 
 void gl_try_use_vsync() noexcept;
 
