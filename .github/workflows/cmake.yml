@@ -92,7 +92,7 @@ jobs:
     - name: Upload Build
       uses: actions/upload-artifact@v4.6.0
       with:
-        name: ${{ matrix.os }}-${{ matrix.cpp_compiler }}-${{ matrix.build_type }}
+        name: ${{ matrix.os }}-${{ matrix.cpp_compiler }}-${{ matrix.build_type }}-${{ matrix.link_type }}
         path: ${{ steps.strings.outputs.build-output-dir }}/${{ runner.os == 'Windows' && matrix.build_type || 'fireworks_cpp' }} 
 
 
