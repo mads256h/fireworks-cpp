@@ -90,7 +90,7 @@ struct shader_stuff_t {
 struct window_state_t {
     // Stars
     glm::vec3 m_stars_background_color = glm::vec3(0.0f);
-    float m_stars_density = 0.98f;
+    float m_stars_density = 0.1f;
 
     // Lines
     glm::vec3 m_line_color = glm::vec3(1.0f);
@@ -120,7 +120,7 @@ void render_debug_menu(window_state_t& window_state, bool render_imgui) {
         if (ImGui::BeginTabBar(tab_id)) {
             if (ImGui::BeginTabItem("Stars")) {
                 ImGui::ColorPicker3("Background Color", glm::value_ptr(window_state.m_stars_background_color));
-                ImGui::DragFloat("Star Density", &window_state.m_stars_density, 0.001f, 0.0f, 1.0f);
+                ImGui::DragFloat("Star Density", &window_state.m_stars_density, 0.001f, 0.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Line")) {
