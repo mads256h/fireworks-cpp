@@ -25,6 +25,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         build_type: [Release, Debug]
+        link_type: [dynamic, static]
         c_compiler: [gcc, clang, cl]
         include:
           - os: windows-latest
@@ -43,6 +44,8 @@ jobs:
             c_compiler: clang
           - os: ubuntu-latest
             c_compiler: cl
+          - os: ubuntu-latest
+            link_type: static
 
     steps:
     - uses: actions/checkout@v4
@@ -76,7 +79,8 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -S ${{ github.workspace }}
         ${{ runner.os == 'Linux' && '-DIMGUI_LIBRARIES="imgui;stb" "-DIMGUI_INCLUDE_DIRS=/usr/include/imgui;/usr/include/imgui/backends"' || '' }}
-        ${{ runner.os == 'Windows' && format('-D CMAKE_TOOLCHAIN_FILE={0}\scripts\buildsystems\vcpkg.cmake', env.VCPKG_ROOT) || '' }}
+        ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}\scripts\buildsystems\vcpkg.cmake', env.VCPKG_ROOT) || '' }}
+        ${{ runner.ss == 'Windows' && format('-DVCPKG_CRT_LINKAGE={0} -DVCPKG_LIBRARY_LINKAGE={0', matrix.link_type) || '' }}
 
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
@@ -89,7 +93,7 @@ jobs:
     - name: Upload Build
       uses: actions/upload-artifact@v4.6.0
       with:
-        name: ${{ matrix.os }}-${{ matrix.cpp_compiler }}-${{ matrix.build_type }}
+        name: ${{ matrix.os }}-${{ matrix.cpp_compiler }}-${{ matrix.build_type }}-${{ matrix.link_type }}
         path: ${{ steps.strings.outputs.build-output-dir }}/${{ runner.os == 'Windows' && matrix.build_type || 'fireworks_cpp' }} 
 
 
