@@ -76,6 +76,7 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -S ${{ github.workspace }}
+        ${{ matrix.link_type == 'static' && '-DSDL2_STATIC=ON -DOPENGL_STATIC=ON -DGLEW_STATIC=ON -DGLM_STATIC=ON -DIMGUI_STATIC=ON' || '' }}
         ${{ runner.os == 'Linux' && '-DIMGUI_LIBRARIES="imgui;stb" "-DIMGUI_INCLUDE_DIRS=/usr/include/imgui;/usr/include/imgui/backends"' || '' }}
         ${{ runner.os == 'Linux' && matrix.link_type == 'static' && '-DCMAKE_FIND_LIBRARY_SUFFIXES=".a" -DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS="-static"' || '' }}
         ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}\scripts\buildsystems\vcpkg.cmake', env.VCPKG_ROOT) || '' }}
