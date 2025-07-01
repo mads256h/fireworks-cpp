@@ -80,7 +80,7 @@ jobs:
         -S ${{ github.workspace }}
         ${{ runner.os == 'Linux' && '-DIMGUI_LIBRARIES="imgui;stb" "-DIMGUI_INCLUDE_DIRS=/usr/include/imgui;/usr/include/imgui/backends"' || '' }}
         ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}\scripts\buildsystems\vcpkg.cmake', env.VCPKG_ROOT) || '' }}
-        ${{ runner.ss == 'Windows' && format('-DVCPKG_CRT_LINKAGE={0} -DVCPKG_LIBRARY_LINKAGE={0', matrix.link_type) || '' }}
+        ${{ runner.os == 'Windows' && format('-DVCPKG_CRT_LINKAGE={0} -DVCPKG_LIBRARY_LINKAGE={0}', matrix.link_type) || '' }}
 
     - name: Build
       # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
